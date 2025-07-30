@@ -1,0 +1,5 @@
+node_modules
+dist
+.groq-code-cli/
+.env
+.DS_Store
