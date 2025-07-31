@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { ToolExecution } from '../../hooks/useAgent.js';
 import DiffPreview from './DiffPreview.js';
+import { formatToolParams } from '../../../tools/builtin/tools.js';
 
 interface ToolHistoryItemProps {
   execution: ToolExecution;
@@ -41,43 +42,6 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
     return ['create_file', 'edit_file'].includes(toolName);
   };
 
-  const formatKeyParams = (toolName: string, args: Record<string, any>) => {
-    const paramMappings: Record<string, string[]> = {
-      read_file: ['file_path'],
-      create_file: ['path'],
-      edit_file: ['file_path', 'old_text', 'new_text'],
-      delete_file: ['path'],
-      move_file: ['source_path', 'destination_path'],
-      search_files: ['pattern', 'directory'],
-      list_files: ['directory'],
-      get_context: ['directory'],
-      create_tasks: [],
-      update_tasks: [],
-      execute_command: ['command'],
-      lint_code: ['file_path']
-    };
-
-    const keyParams = paramMappings[toolName] || [];
-
-    if (keyParams.length === 0) {
-      return '';
-    }
-
-    const paramParts = keyParams
-      .filter(param => param in args)
-      .map(param => {
-        let value = args[param];
-        // Truncate long values
-        if (typeof value === 'string' && value.length > 50) {
-          value = value.substring(0, 47) + '...';
-        } else if (Array.isArray(value) && value.length > 3) {
-          value = `[${value.length} items]`;
-        }
-        return `${param}: ${JSON.stringify(value)}`;
-      });
-
-    return paramParts.join(', ');
-  };
 
   const renderResult = (toolName: string, result: any) => {
     const content = result.content;
@@ -130,7 +94,12 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
     if (toolName === 'read_file') {
       return null;
     }
-    
+
+    // Handle file content for search_files - don't show content
+    if (toolName === 'search_files') {
+      return null;
+    }
+
     // Default handling
     return (
       <Text color="white">
@@ -159,10 +128,10 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
             );
           })}
         </Box>
-      ) : formatKeyParams(name, args) ? (
+      ) : formatToolParams(name, args, { includePrefix: false, separator: ': ' }) ? (
         <Box>
           <Text color="gray">
-            {formatKeyParams(name, args)}
+            {formatToolParams(name, args, { includePrefix: false, separator: ': ' })}
           </Text>
         </Box>
       ) : null}
@@ -172,6 +141,7 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
           <DiffPreview 
             toolName={name}
             toolArgs={args}
+            isHistorical={true}
           />
         </Box>
       )}

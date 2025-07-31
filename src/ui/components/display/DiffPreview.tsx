@@ -20,9 +20,10 @@ interface ToolArgs {
 interface DiffPreviewProps {
   toolName: string;
   toolArgs: ToolArgs;
+  isHistorical?: boolean;
 }
 
-export default function DiffPreview({ toolName, toolArgs }: DiffPreviewProps) {
+export default function DiffPreview({ toolName, toolArgs, isHistorical = false }: DiffPreviewProps) {
   const [diffChunks, setDiffChunks] = React.useState<DiffChunk[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -36,8 +37,8 @@ export default function DiffPreview({ toolName, toolArgs }: DiffPreviewProps) {
       setIsLoading(true);
       setError(null);
 
-      // Pre-validate tool arguments if validator exists
-      if (hasValidator(toolName)) {
+      // Pre-validate tool arguments if validator exists (skip for historical edits)
+      if (!isHistorical && hasValidator(toolName)) {
         const validationResult = await validateToolArgs(toolName, toolArgs);
         if (!validationResult.isValid) {
           setError(`Validation error: ${validationResult.errors.join(', ')}`);
@@ -51,53 +52,67 @@ export default function DiffPreview({ toolName, toolArgs }: DiffPreviewProps) {
         return;
       }
 
-      let originalContent = '';
-      let originalLines: string[] = [];
-      
-      // Read current file content
-      try {
-        const resolvedPath = path.resolve(filePath);
-        const exists = await fs.promises.access(resolvedPath).then(() => true).catch(() => false);
-        
-        if (exists) {
-          originalContent = await fs.promises.readFile(resolvedPath, 'utf-8');
-          originalLines = originalContent.split('\n');
-        }
-      } catch (error) {
-        // File doesn't exist or can't be read, use empty content
-      }
-      
-      let reconstructedOriginal = originalContent;
+      let reconstructedOriginal: string;
       let simulatedContent: string;
       
-      // Handle different operation types
-      if (toolArgs.old_text !== undefined && toolArgs.new_text !== undefined) {
-        // String-based edit_file operation
-        if (!originalContent.includes(toolArgs.old_text)) {
-          // If old_text not found, the edit may have already been applied
-          // Try to reconstruct the original by reversing the edit
-          if (originalContent.includes(toolArgs.new_text)) {
-            if (toolArgs.replace_all) {
-              reconstructedOriginal = originalContent.split(toolArgs.new_text).join(toolArgs.old_text);
-            } else {
-              reconstructedOriginal = originalContent.replace(toolArgs.new_text, toolArgs.old_text);
-            }
-            simulatedContent = originalContent; // Current content is the result
-          } else {
-            // Neither old nor new text found, show as no changes
-            simulatedContent = originalContent;
-          }
+      if (isHistorical) {
+        // For historical edits, generate synthetic diff directly from parameters
+        if (toolArgs.old_text !== undefined && toolArgs.new_text !== undefined) {
+          // edit_file operation
+          reconstructedOriginal = toolArgs.old_text;
+          simulatedContent = toolArgs.new_text;
+        } else if (toolArgs.content !== undefined) {
+          // create_file operation - show as adding all content
+          reconstructedOriginal = '';
+          simulatedContent = toolArgs.content;
         } else {
-          // old_text found, apply the edit normally
-          if (toolArgs.replace_all) {
-            simulatedContent = originalContent.split(toolArgs.old_text).join(toolArgs.new_text);
-          } else {
-            simulatedContent = originalContent.replace(toolArgs.old_text, toolArgs.new_text);
-          }
+          // Fallback
+          reconstructedOriginal = '';
+          simulatedContent = '';
         }
       } else {
-        // For create_file or other operations, treat as full content replacement
-        simulatedContent = toolArgs.content || '';
+        // For non-historical edits, use the existing file-based logic
+        let originalContent = '';
+        
+        // Read current file content
+        try {
+          const resolvedPath = path.resolve(filePath);
+          originalContent = await fs.promises.readFile(resolvedPath, 'utf-8');
+        } catch (error) {
+          // File doesn't exist or can't be read, use empty content
+        }
+        
+        reconstructedOriginal = originalContent;
+        
+        // Handle different operation types
+        if (toolArgs.old_text !== undefined && toolArgs.new_text !== undefined) {
+          // String-based edit_file operation
+          if (!originalContent.includes(toolArgs.old_text)) {
+            // If old_text not found, the edit may have already been applied
+            // Try to reconstruct the original by reversing the edit
+            if (originalContent.includes(toolArgs.new_text)) {
+              if (toolArgs.replace_all) {
+                reconstructedOriginal = originalContent.split(toolArgs.new_text).join(toolArgs.old_text);
+              } else {
+                reconstructedOriginal = originalContent.replace(toolArgs.new_text, toolArgs.old_text);
+              }
+              simulatedContent = originalContent; // Current content is the result
+            } else {
+              // Neither old nor new text found, show as no changes
+              simulatedContent = originalContent;
+            }
+          } else {
+            // old_text found, apply the edit normally
+            if (toolArgs.replace_all) {
+              simulatedContent = originalContent.split(toolArgs.old_text).join(toolArgs.new_text);
+            } else {
+              simulatedContent = originalContent.replace(toolArgs.old_text, toolArgs.new_text);
+            }
+          }
+        } else {
+          // For create_file or other operations, treat as full content replacement
+          simulatedContent = toolArgs.content || '';
+        }
       }
       
       // Generate unified diff

@@ -51,19 +51,19 @@ setReadFilesTracker(readFiles);
 /**
  * Format key parameters for tool call display
  */
-export function formatToolParams(toolName: string, toolArgs: Record<string, any>): string {
+export function formatToolParams(toolName: string, toolArgs: Record<string, any>, options: { includePrefix?: boolean; separator?: string } = {}): string {
+  const { includePrefix = true, separator = '=' } = options;
+  
   const paramMappings: Record<string, string[]> = {
     read_file: ['file_path'],
     create_file: ['file_path'],
-    edit_file: ['file_path', 'old_text', 'new_text'],
+    edit_file: ['file_path'],
     delete_file: ['file_path'],
-    move_file: ['source_path', 'destination_path'],
-    search_files: ['pattern', 'directory'],
     list_files: ['directory'],
+    search_files: ['pattern'],
+    execute_command: ['command'],
     create_tasks: [],
     update_tasks: [],
-    execute_command: ['command', 'language'],
-    lint_code: ['file_path']
   };
 
   const keyParams = paramMappings[toolName] || [];
@@ -82,10 +82,15 @@ export function formatToolParams(toolName: string, toolArgs: Record<string, any>
       } else if (Array.isArray(value) && value.length > 3) {
         value = `[${value.length} items]`;
       }
-      return `${param}=${JSON.stringify(value)}`;
+      return `${param}${separator}${JSON.stringify(value)}`;
     });
 
-  return paramParts.length > 0 ? `Parameters: ${paramParts.join(', ')}` : `Arguments: ${JSON.stringify(toolArgs)}`;
+  if (paramParts.length === 0) {
+    return includePrefix ? `Arguments: ${JSON.stringify(toolArgs)}` : JSON.stringify(toolArgs);
+  }
+
+  const formattedParams = paramParts.join(', ');
+  return includePrefix ? `Parameters: ${formattedParams}` : formattedParams;
 }
 
 /**

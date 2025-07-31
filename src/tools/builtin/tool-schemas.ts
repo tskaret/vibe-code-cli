@@ -133,28 +133,6 @@ export const DELETE_FILE_SCHEMA: ToolSchema = {
   }
 };
 
-export const MOVE_FILE_SCHEMA: ToolSchema = {
-  type: 'function',
-  function: {
-    name: 'move_file',
-    description: 'Move or rename a file or directory',
-    parameters: {
-      type: 'object',
-      properties: {
-        source_path: {
-          type: 'string',
-          description: 'Current path of the file or directory'
-        },
-        destination_path: {
-          type: 'string',
-          description: 'New path for the file or directory'
-        }
-      },
-      required: ['source_path', 'destination_path']
-    }
-  }
-};
-
 // Code Execution Tools
 
 export const EXECUTE_COMMAND_SCHEMA: ToolSchema = {
@@ -381,38 +359,6 @@ export const UPDATE_TASKS_SCHEMA: ToolSchema = {
   }
 };
 
-// Test/Quality Tools
-
-export const LINT_CODE_SCHEMA: ToolSchema = {
-  type: 'function',
-  function: {
-    name: 'lint_code',
-    description: 'Run code linting/formatting checks',
-    parameters: {
-      type: 'object',
-      properties: {
-        file_pattern: {
-          type: 'string',
-          description: 'Pattern to match files for linting',
-          default: '*.py'
-        },
-        linter: {
-          type: 'string',
-          enum: ['ruff', 'pylint', 'flake8', 'black', 'auto'],
-          description: 'Linter to use',
-          default: 'auto'
-        },
-        fix: {
-          type: 'boolean',
-          description: 'Whether to automatically fix issues',
-          default: false
-        }
-      },
-      required: []
-    }
-  }
-};
-
 // Tool Collections
 
 // Core file operations - always available
@@ -420,8 +366,7 @@ export const CORE_TOOLS = [
   READ_FILE_SCHEMA,
   CREATE_FILE_SCHEMA,
   EDIT_FILE_SCHEMA,
-  DELETE_FILE_SCHEMA,
-  MOVE_FILE_SCHEMA
+  DELETE_FILE_SCHEMA
 ];
 
 // Information gathering tools
@@ -438,8 +383,7 @@ export const TASK_TOOLS = [
 
 // Execution tools - require careful approval
 export const EXECUTION_TOOLS = [
-  EXECUTE_COMMAND_SCHEMA,
-  LINT_CODE_SCHEMA
+  EXECUTE_COMMAND_SCHEMA
 ];
 
 // All tools combined
@@ -459,6 +403,5 @@ export const DANGEROUS_TOOLS = [
   'create_file',
   'edit_file',
   'delete_file',
-  'execute_command',
-  'move_file'
+  'execute_command'
 ];

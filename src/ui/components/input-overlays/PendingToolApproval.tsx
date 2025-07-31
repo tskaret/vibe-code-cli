@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import DiffPreview from '../display/DiffPreview.js';
+import { formatToolParams } from '../../../tools/builtin/tools.js';
 
 interface PendingToolApprovalProps {
   toolName: string;
@@ -43,44 +44,6 @@ export default function PendingToolApproval({
     return filePath.split('/').pop() || filePath;
   };
 
-  const formatKeyParams = (toolName: string, args: Record<string, any>) => {
-    const paramMappings: Record<string, string[]> = {
-      read_file: ['file_path'],
-      create_file: ['file_path'],
-      edit_file: ['file_path', 'start_line', 'end_line'],
-      delete_file: ['file_path'],
-      move_file: ['source_path', 'destination_path'],
-      search_files: ['pattern', 'directory'],
-      list_files: ['directory'],
-      get_context: ['directory'],
-      create_tasks: [],
-      update_tasks: [],
-      execute_command: ['command'],
-      lint_code: ['file_path']
-    };
-
-    const keyParams = paramMappings[toolName] || [];
-
-    if (keyParams.length === 0) {
-      return '';
-    }
-
-    const paramParts = keyParams
-      .filter(param => param in args)
-      .map(param => {
-        let value = args[param];
-        // Truncate long values
-        if (typeof value === 'string' && value.length > 50) {
-          value = value.substring(0, 47) + '...';
-        } else if (Array.isArray(value) && value.length > 3) {
-          value = `[${value.length} items]`;
-        }
-        return `${param}: ${JSON.stringify(value)}`;
-      });
-
-    return paramParts.join(', ');
-  };
-
   const filename = getFilename();
 
   return (
@@ -94,7 +57,7 @@ export default function PendingToolApproval({
       
       {/* Show key parameters */}
       {(() => {
-        const keyParams = formatKeyParams(toolName, toolArgs);
+        const keyParams = formatToolParams(toolName, toolArgs, { includePrefix: false, separator: ': ' });
         return keyParams ? (
           <Box>
             <Text color="gray" dimColor>
