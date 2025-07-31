@@ -42,6 +42,7 @@ export default function Chat({ agent }: ChatProps) {
 
   const {
     messages,
+    userMessageHistory,
     isProcessing,
     currentToolExecution,
     pendingApproval,
@@ -182,6 +183,7 @@ export default function Chat({ agent }: ChatProps) {
             onChange={setInputValue}
             onSubmit={handleSendMessage}
             placeholder="Type your message... (Ctrl+C to exit)"
+            userMessageHistory={userMessageHistory}
           />
         ) : (
           <Box>

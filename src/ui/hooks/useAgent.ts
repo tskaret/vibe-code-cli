@@ -28,6 +28,7 @@ export function useAgent(
   onCompleteRequest?: () => void
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [userMessageHistory, setUserMessageHistory] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentToolExecution, setCurrentToolExecution] = useState<ToolExecution | null>(null);
   const currentExecutionIdRef = useRef<string | null>(null);
@@ -60,6 +61,9 @@ export function useAgent(
     if (onStartRequest) {
       onStartRequest();
     }
+
+    // Add user message to history
+    setUserMessageHistory(prev => [...prev, userInput]);
 
     // Add user message and count its tokens
     addMessage({
@@ -242,11 +246,13 @@ export function useAgent(
 
   const clearHistory = useCallback(() => {
     setMessages([]);
+    setUserMessageHistory([]);
     agent.clearHistory();
   }, [agent]);
 
   return {
     messages,
+    userMessageHistory,
     isProcessing,
     currentToolExecution,
     pendingApproval,
