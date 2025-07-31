@@ -54,9 +54,9 @@ setReadFilesTracker(readFiles);
 export function formatToolParams(toolName: string, toolArgs: Record<string, any>): string {
   const paramMappings: Record<string, string[]> = {
     read_file: ['file_path'],
-    create_file: ['path'],
+    create_file: ['file_path'],
     edit_file: ['file_path', 'old_text', 'new_text'],
-    delete_file: ['path'],
+    delete_file: ['file_path'],
     move_file: ['source_path', 'destination_path'],
     search_files: ['pattern', 'directory'],
     list_files: ['directory'],
@@ -664,16 +664,17 @@ export async function createTasks(userQuery: string, tasks: Task[]): Promise<Too
       created_at: new Date().toISOString()
     };
 
-    // Format task list for display
-    console.log('\n⏺ Create tasks:');
-    for (const task of tasks) {
-      const statusSymbol = task.status === 'pending' ? '☐' : (task.status === 'in_progress' ? '🔄' : '✅');
-      console.log(`  ⎿  ${statusSymbol} ${task.description}`);
-    }
+
+    // Return a deep copy to prevent mutation of historical displays
+    const snapshot = {
+      user_query: currentTaskList.user_query,
+      tasks: currentTaskList.tasks.map(task => ({ ...task })),
+      created_at: currentTaskList.created_at
+    };
 
     return createToolResponse(
       true,
-      currentTaskList,
+      snapshot,
       `Created task list with ${tasks.length} tasks for: ${userQuery}`
     );
 
@@ -740,24 +741,16 @@ export async function updateTasks(taskUpdates: TaskUpdate[]): Promise<ToolResult
       }
     }
 
-    // Display updated task list
-    console.log('\n⏺ Task updates:');
-    for (const updateInfo of updatesMade) {
-      const oldSymbol = updateInfo.old_status === 'pending' ? '☐' : (updateInfo.old_status === 'in_progress' ? '🔄' : '✅');
-      const newSymbol = updateInfo.new_status === 'pending' ? '☐' : (updateInfo.new_status === 'in_progress' ? '🔄' : '✅');
-      console.log(`  ⎿  ${oldSymbol} → ${newSymbol} ${updateInfo.description}`);
-    }
-
-    // Show current full task list
-    console.log('\n⏺ Current task list:');
-    for (const task of currentTaskList.tasks) {
-      const statusSymbol = task.status === 'pending' ? '☐' : (task.status === 'in_progress' ? '🔄' : '✅');
-      console.log(`  ⎿  ${statusSymbol} ${task.description}`);
-    }
+    // Return a deep copy to prevent mutation of historical displays
+    const snapshot = {
+      user_query: currentTaskList.user_query,
+      tasks: currentTaskList.tasks.map(task => ({ ...task })),
+      created_at: currentTaskList.created_at
+    };
 
     return createToolResponse(
       true,
-      currentTaskList,
+      snapshot,
       `Updated ${updatesMade.length} task(s)`
     );
 
@@ -795,11 +788,11 @@ export async function executeTool(toolName: string, toolArgs: Record<string, any
       case 'read_file':
         return await toolFunction(toolArgs.file_path, toolArgs.start_line, toolArgs.end_line);
       case 'create_file':
-        return await toolFunction(toolArgs.path, toolArgs.content, toolArgs.file_type, toolArgs.overwrite);
+        return await toolFunction(toolArgs.file_path, toolArgs.content, toolArgs.file_type, toolArgs.overwrite);
       case 'edit_file':
         return await toolFunction(toolArgs.file_path, toolArgs.old_text, toolArgs.new_text, toolArgs.replace_all);
       case 'delete_file':
-        return await toolFunction(toolArgs.path, toolArgs.recursive);
+        return await toolFunction(toolArgs.file_path, toolArgs.recursive);
       case 'list_files':
         return await toolFunction(toolArgs.directory, toolArgs.pattern, toolArgs.recursive, toolArgs.show_hidden);
       case 'search_files':

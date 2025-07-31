@@ -49,9 +49,9 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
   });
 
   return (
-    <Box flexDirection="column" paddingY={1}>
+    <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text color="cyan" bold>🤖 Select Model</Text>
+        <Text color="cyan" bold>Select Model</Text>
       </Box>
       
       <Box marginBottom={1}>
@@ -68,7 +68,7 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
               backgroundColor={index === selectedIndex ? 'cyan' : undefined}
               bold={index === selectedIndex}
             >
-              {index === selectedIndex ? '▶ ' : '  '}
+              {index === selectedIndex ? <Text bold>{">"}</Text> : "  "} {""}
               {model.name}
               {model.id === currentModel ? ' (current)' : ''}
             </Text>
@@ -81,12 +81,6 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
             )}
           </Box>
         ))}
-      </Box>
-
-      <Box marginTop={1}>
-        <Text color="gray" dimColor>
-          Use ↑/↓ to navigate • Enter to select • Escape to cancel
-        </Text>
       </Box>
     </Box>
   );

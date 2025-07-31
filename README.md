@@ -58,7 +58,6 @@ groq
 groq [prompt] [options]
 
 Options:
-  -m, --model <model>           Model to use (default: moonshotai/kimi-k2-instruct)
   -t, --temperature <temp>      Temperature for generation (default: 0.7)
   -s, --system <message>        Custom system message
   --no-context                  Disable directory context

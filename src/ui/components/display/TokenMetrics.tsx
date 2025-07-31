@@ -95,13 +95,13 @@ export default function TokenMetrics({
   return (
     <Box paddingX={1}>
       <Box gap={2}>
+        <Text color="cyan">{getElapsedTime()}</Text>
+        <Text color="green">{tokenCount} tokens</Text>
         {(isActive || isPaused) && (
             <Text color={isPaused ? 'yellow' : 'blue'}>
               {getStatusText()}
             </Text>
         )}
-        <Text color="cyan">⏱️ {getElapsedTime()}</Text>
-        <Text color="green">🔤 {tokenCount} tokens</Text>
       </Box>
     </Box>
   );

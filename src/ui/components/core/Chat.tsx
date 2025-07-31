@@ -3,12 +3,12 @@ import { Box, Text, useInput, useApp } from 'ink';
 import { Agent } from '../../../core/agent.js';
 import { useAgent } from '../../hooks/useAgent.js';
 import { useTokenMetrics } from '../../hooks/useTokenMetrics.js';
-import MessageList from './MessageList.js';
+import MessageHistory from './MessageHistory.js';
 import MessageInput from './MessageInput.js';
-import DiffPreview from '../display/DiffPreview.js';
 import TokenMetrics from '../display/TokenMetrics.js';
-import Login from '../modals/Login.js';
-import ModelSelector from '../modals/ModelSelector.js';
+import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
+import Login from '../input-overlays/Login.js';
+import ModelSelector from '../input-overlays/ModelSelector.js';
 import { handleSlashCommand } from '../../../commands/index.js';
 
 interface ChatProps {
@@ -63,21 +63,13 @@ export default function Chat({ agent }: ChatProps) {
     if (key.ctrl && input === 'c') {
       exit();
     }
-    
-    // Handle tool approval
-    if (pendingApproval) {
-      if (input === 'y' || input === 'Y') {
-        handleApproval(true);
-      } else if (input === 'n' || input === 'N') {
-        handleApproval(false);
-      }
-    }
   });
 
   // Hide input when processing, waiting for approval, or showing login/model selector
   useEffect(() => {
     setShowInput(!isProcessing && !pendingApproval && !showLogin && !showModelSelector);
   }, [isProcessing, pendingApproval, showLogin, showModelSelector]);
+
 
   const handleSendMessage = async (message: string) => {
     if (message.trim() && !isProcessing) {
@@ -123,7 +115,7 @@ export default function Chat({ agent }: ChatProps) {
     setShowLogin(false);
     addMessage({
       role: 'system',
-      content: 'Login cancelled.',
+      content: 'Login canceled.',
     });
   };
 
@@ -143,7 +135,7 @@ export default function Chat({ agent }: ChatProps) {
     setShowModelSelector(false);
     addMessage({
       role: 'system',
-      content: 'Model selection cancelled.',
+      content: 'Model selection canceled.',
     });
   };
 
@@ -151,7 +143,7 @@ export default function Chat({ agent }: ChatProps) {
     <Box flexDirection="column" height="100%">
       {/* Chat messages area */}
       <Box flexGrow={1} flexDirection="column" paddingX={1}>
-        <MessageList messages={messages} />
+        <MessageHistory messages={messages} />
       </Box>
 
       {/* Token metrics */}
@@ -167,79 +159,12 @@ export default function Chat({ agent }: ChatProps) {
       {/* Input area */}
       <Box borderStyle="round" borderColor="white" paddingX={1}>
         {pendingApproval ? (
-          <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1}>
-            {/* Tool name header */}
-            <Box marginBottom={1}>
-              <Text color="yellow">
-                ⚠️ Tool: <Text bold>{pendingApproval.toolName}</Text>
-              </Text>
-            </Box>
-            
-            {/* Show key parameters */}
-            {(() => {
-              const formatKeyParams = (toolName: string, args: Record<string, any>) => {
-                const paramMappings: Record<string, string[]> = {
-                  read_file: ['file_path'],
-                  create_file: ['path'],
-                  edit_file: ['file_path', 'start_line', 'end_line'],
-                  delete_file: ['path'],
-                  move_file: ['source_path', 'destination_path'],
-                  search_files: ['pattern', 'directory'],
-                  list_files: ['directory'],
-                  get_context: ['directory'],
-                  create_tasks: [],
-                  update_tasks: [],
-                  execute_command: ['command'],
-                  lint_code: ['file_path']
-                };
-
-                const keyParams = paramMappings[toolName] || [];
-
-                if (keyParams.length === 0) {
-                  return '';
-                }
-
-                const paramParts = keyParams
-                  .filter(param => param in args)
-                  .map(param => {
-                    let value = args[param];
-                    // Truncate long values
-                    if (typeof value === 'string' && value.length > 50) {
-                      value = value.substring(0, 47) + '...';
-                    } else if (Array.isArray(value) && value.length > 3) {
-                      value = `[${value.length} items]`;
-                    }
-                    return `${param}: ${JSON.stringify(value)}`;
-                  });
-
-                return paramParts.join(', ');
-              };
-              
-              const keyParams = formatKeyParams(pendingApproval.toolName, pendingApproval.toolArgs);
-              return keyParams ? (
-                <Box marginBottom={1}>
-                  <Text color="gray" dimColor>
-                    {keyParams}
-                  </Text>
-                </Box>
-              ) : null;
-            })()} 
-            
-            {/* Show diff for file operations */}
-            {(pendingApproval.toolName === 'create_file' || pendingApproval.toolName === 'edit_file') && (
-              <Box marginBottom={1}>
-                <DiffPreview 
-                  toolName={pendingApproval.toolName}
-                  toolArgs={pendingApproval.toolArgs}
-                />
-              </Box>
-            )}
-            
-            {/* Approval prompt */}
-            <Text color="yellow">
-              ⚠️ This tool requires approval. Press 'y' to approve or 'n' to reject.
-            </Text>
-          </Box>
+          <PendingToolApproval
+            toolName={pendingApproval.toolName}
+            toolArgs={pendingApproval.toolArgs}
+            onApprove={() => handleApproval(true)}
+            onReject={() => handleApproval(false)}
+          />
         ) : showLogin ? (
           <Login
             onSubmit={handleLogin}

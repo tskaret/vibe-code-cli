@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { ChatMessage } from '../../hooks/useAgent.js';
-import ToolCall from '../display/ToolCall.js';
+import ToolHistoryItem from '../display/ToolHistoryItem.js';
 
-interface MessageListProps {
+interface MessageHistoryProps {
   messages: ChatMessage[];
 }
 
-export default function MessageList({ messages }: MessageListProps) {
+export default function MessageHistory({ messages }: MessageHistoryProps) {
   const scrollRef = useRef<any>(null);
 
   // Auto-scroll to bottom when new messages are added
@@ -58,7 +58,7 @@ export default function MessageList({ messages }: MessageListProps) {
         if (message.toolExecution) {
           return (
             <Box key={message.id} marginBottom={1}>
-              <ToolCall execution={message.toolExecution} />
+              <ToolHistoryItem execution={message.toolExecution} />
             </Box>
           );
         }
@@ -82,9 +82,12 @@ export default function MessageList({ messages }: MessageListProps) {
   return (
     <Box ref={scrollRef} flexDirection="column" flexGrow={1}>
       {messages.length === 0 ? (
-        <Box justifyContent="center" paddingY={2}>
+        <Box justifyContent="center" paddingY={2} flexDirection="column" alignItems="center">
           <Text color="gray" dimColor italic>
-            Start typing to begin your conversation...
+            Ask me to help with coding tasks, debug issues, or explain code.
+          </Text>
+          <Text color="gray" dimColor italic>
+            Type /help for available commands and features.
           </Text>
         </Box>
       ) : (

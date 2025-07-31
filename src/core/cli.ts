@@ -14,7 +14,6 @@ import App from '../ui/App.js';
 const program = new Command();
 
 async function startChat(
-  model: string,
   temperature: number,
   system: string | null,
   noContext: boolean,
@@ -41,12 +40,11 @@ async function startChat(
 ░░██████ ░░██████ ░░███████ ░░██████  
  ░░░░░░   ░░░░░░   ░░░░░░░░  ░░░░░░   
 `));
-  console.log('');
 
   try {
     // Create agent (API key will be checked on first message)
     const agent = await Agent.create(
-      model,
+      'moonshotai/kimi-k2-instruct',
       temperature,
       system,
       noContext,
@@ -54,9 +52,7 @@ async function startChat(
       autoWrite
     );
 
-    // Render Ink app
     render(React.createElement(App, { agent, initialPrompt }));
-    // render(<App agent={agent} initialPrompt={initialPrompt} />);
   } catch (error) {
     console.log(chalk.red(`Error initializing agent: ${error}`));
     process.exit(1);
@@ -68,7 +64,7 @@ program
   .description('Groq CLI - TypeScript Migration with Ink UI')
   .version('1.0.0')
   .argument('[prompt]', 'Initial prompt (optional)')
-  .option('-m, --model <model>', 'Model to use', 'moonshotai/kimi-k2-instruct')
+
   .option('-t, --temperature <temperature>', 'Temperature for generation', parseFloat, 0.7)
   .option('-s, --system <message>', 'Custom system message')
   .option('--no-context', 'Disable directory context')
@@ -76,7 +72,6 @@ program
   .option('--auto-write', 'Skip approval prompts and automatically execute tools')
   .action(async (prompt, options) => {
     await startChat(
-      options.model,
       options.temperature,
       options.system || null,
       options.noContext || false,

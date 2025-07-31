@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { getCommandNames } from '../../../commands/index.js';
-import SlashCommandSuggestions from './SlashCommandSuggestions.js';
+import SlashCommandSuggestions from '../input-overlays/SlashCommandSuggestions.js';
 
 interface MessageInputProps {
   value: string;

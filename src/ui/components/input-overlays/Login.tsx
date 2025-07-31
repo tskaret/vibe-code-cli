@@ -39,9 +39,9 @@ export default function Login({ onSubmit, onCancel }: LoginProps) {
   });
 
   return (
-    <Box flexDirection="column" paddingY={1}>
+    <Box flexDirection="column" marginBottom={1}>
       <Box marginBottom={1}>
-        <Text color="cyan" bold>🔑 Login with Groq API Key</Text>
+        <Text color="cyan" bold>Login with Groq API Key</Text>
       </Box>
       
       <Box marginBottom={1}>
@@ -57,12 +57,6 @@ export default function Login({ onSubmit, onCancel }: LoginProps) {
           {apiKey.length > 20 && '...'}
         </Text>
         <Text backgroundColor="cyan" color="cyan">▌</Text>
-      </Box>
-
-      <Box marginTop={1}>
-        <Text color="gray" dimColor>
-          Press Enter to submit • Escape to cancel
-        </Text>
       </Box>
     </Box>
   );

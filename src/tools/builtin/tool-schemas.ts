@@ -54,7 +54,7 @@ export const CREATE_FILE_SCHEMA: ToolSchema = {
     parameters: {
       type: 'object',
       properties: {
-        path: {
+        file_path: {
           type: 'string',
           description: 'Path for the new file or directory'
         },
@@ -74,7 +74,7 @@ export const CREATE_FILE_SCHEMA: ToolSchema = {
           default: false
         }
       },
-      required: ['path', 'content']
+      required: ['file_path', 'content']
     }
   }
 };
@@ -118,7 +118,7 @@ export const DELETE_FILE_SCHEMA: ToolSchema = {
     parameters: {
       type: 'object',
       properties: {
-        path: {
+        file_path: {
           type: 'string',
           description: 'Path to the file or directory to delete'
         },
@@ -128,7 +128,7 @@ export const DELETE_FILE_SCHEMA: ToolSchema = {
           default: false
         }
       },
-      required: ['path']
+      required: ['file_path']
     }
   }
 };

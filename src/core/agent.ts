@@ -6,7 +6,7 @@ import * as path from 'path';
 import { displayTree } from '../utils/file-ops.js';
 import { formatToolParams, executeTool } from '../tools/builtin/tools.js';
 import { validateToolArgs, hasValidator } from '../tools/validators.js';
-import { ALL_TOOLS } from '../tools/builtin/tool-schemas.js';
+import { ALL_TOOLS, DANGEROUS_TOOLS } from '../tools/builtin/tool-schemas.js';
 import { ConfigManager } from '../utils/config.js';
 
 interface Message {
@@ -353,10 +353,8 @@ When asked about your identity, you should identify yourself as a coding assista
         }
       }
 
-      // TODO: Use DANGEROUS_TOOLS from tool-schemas.ts
       // Check if tool needs approval (only after validation passes)
-      const dangerousTools = new Set(['create_file', 'edit_file', 'delete_file']);
-      if (dangerousTools.has(toolName) && !this.autoWrite) {
+      if (DANGEROUS_TOOLS.includes(toolName) && !this.autoWrite) {
         let approved: boolean;
         
         if (this.onToolApproval) {

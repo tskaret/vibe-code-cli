@@ -14,7 +14,6 @@ interface ToolArgs {
   new_text?: string;
   replace_all?: boolean;
   content?: string;
-  path?: string;
   file_path?: string;
 }
 
@@ -46,7 +45,7 @@ export default function DiffPreview({ toolName, toolArgs }: DiffPreviewProps) {
         }
       }
 
-      const filePath = toolArgs.path || toolArgs.file_path;
+      const filePath = toolArgs.file_path;
       if (!filePath) {
         setError('No file path provided');
         return;
@@ -68,16 +67,28 @@ export default function DiffPreview({ toolName, toolArgs }: DiffPreviewProps) {
         // File doesn't exist or can't be read, use empty content
       }
       
+      let reconstructedOriginal = originalContent;
       let simulatedContent: string;
       
       // Handle different operation types
       if (toolArgs.old_text !== undefined && toolArgs.new_text !== undefined) {
         // String-based edit_file operation
         if (!originalContent.includes(toolArgs.old_text)) {
-          // If old_text not found, show as no changes
-          simulatedContent = originalContent;
+          // If old_text not found, the edit may have already been applied
+          // Try to reconstruct the original by reversing the edit
+          if (originalContent.includes(toolArgs.new_text)) {
+            if (toolArgs.replace_all) {
+              reconstructedOriginal = originalContent.split(toolArgs.new_text).join(toolArgs.old_text);
+            } else {
+              reconstructedOriginal = originalContent.replace(toolArgs.new_text, toolArgs.old_text);
+            }
+            simulatedContent = originalContent; // Current content is the result
+          } else {
+            // Neither old nor new text found, show as no changes
+            simulatedContent = originalContent;
+          }
         } else {
-          // Perform string replacement
+          // old_text found, apply the edit normally
           if (toolArgs.replace_all) {
             simulatedContent = originalContent.split(toolArgs.old_text).join(toolArgs.new_text);
           } else {
@@ -90,13 +101,14 @@ export default function DiffPreview({ toolName, toolArgs }: DiffPreviewProps) {
       }
       
       // Generate unified diff
+      const reconstructedOriginalLines = reconstructedOriginal.split('\n');
       const simulatedLines = simulatedContent.split('\n');
       const diff = generateUnifiedDiff(
-        originalLines,
+        reconstructedOriginalLines,
         simulatedLines,
         `${filePath} (original)`,
         `${filePath} (new)`,
-        5 // 4 lines of context
+        5 // 5 lines of context
       );
       
       if (diff.length === 0) {

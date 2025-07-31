@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Agent } from '../../core/agent.js';
+import { DANGEROUS_TOOLS } from '../../tools/builtin/tool-schemas.js';
 
 export interface ChatMessage {
   id: string;
@@ -13,10 +14,9 @@ export interface ToolExecution {
   id: string;
   name: string;
   args: Record<string, any>;
-  status: 'pending' | 'approved' | 'executing' | 'completed' | 'failed' | 'cancelled';
+  status: 'pending' | 'approved' | 'executing' | 'completed' | 'failed' | 'canceled';
   result?: any;
   needsApproval?: boolean;
-  showDiff?: boolean;
 }
 
 export function useAgent(
@@ -30,6 +30,7 @@ export function useAgent(
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentToolExecution, setCurrentToolExecution] = useState<ToolExecution | null>(null);
+  const currentExecutionIdRef = useRef<string | null>(null);
   const [pendingApproval, setPendingApproval] = useState<{
     toolName: string;
     toolArgs: Record<string, any>;
@@ -107,8 +108,11 @@ export function useAgent(
             name,
             args,
             status: 'pending',
-            needsApproval: ['create_file', 'edit_file', 'delete_file'].includes(name),
+            needsApproval: DANGEROUS_TOOLS.includes(name),
           };
+          
+          // Store the ID in ref for reliable matching across callbacks
+          currentExecutionIdRef.current = toolExecution.id;
           
           // Count tokens from tool arguments
           if (onAddTokens) {
@@ -117,9 +121,8 @@ export function useAgent(
           }
           
           // Only add message for tools that don't require approval
-          // Approval tools will be added after approval
+          // Approval tools will be added after approval decision
           if (!toolExecution.needsApproval) {
-            toolExecution.showDiff = name === 'create_file' || name === 'edit_file';
             addMessage({
               role: 'tool_execution',
               content: `Executing ${name}...`,
@@ -130,34 +133,42 @@ export function useAgent(
           setCurrentToolExecution(toolExecution);
         },
         onToolEnd: (name: string, result: any) => {
+          const executionId = currentExecutionIdRef.current;
+          
           // Count tokens from tool result
           if (onAddTokens && result) {
             const resultText = typeof result === 'string' ? result : JSON.stringify(result);
             onAddTokens(resultText);
           }
           
-          setMessages(prev => prev.map(msg => 
-            msg.toolExecution?.name === name && msg.role === 'tool_execution'
-              ? { 
-                  ...msg, 
-                  content: result.userRejected 
-                    ? `🚫 ${name} rejected by user`
+          // Only update the specific tool execution that just finished
+          setMessages(prev => {
+            return prev.map(msg => {
+              // Match by the execution ID stored in ref (reliable across callbacks)
+              if (msg.toolExecution?.id === executionId && msg.role === 'tool_execution') {
+                return { 
+                ...msg, 
+                content: result.userRejected 
+                  ? `🚫 ${name} rejected by user`
+                  : result.success 
+                    ? `✓ ${name} completed successfully` 
+                    : `🔴 ${name} failed: ${result.error || 'Unknown error'}`,
+                toolExecution: { 
+                  ...msg.toolExecution!, 
+                  status: result.userRejected 
+                    ? 'canceled'
                     : result.success 
-                      ? `✅ ${name} completed successfully` 
-                      : `❌ ${name} failed: ${result.error || 'Unknown error'}`,
-                  toolExecution: { 
-                    ...msg.toolExecution!, 
-                    status: result.userRejected 
-                      ? 'cancelled'
-                      : result.success 
-                        ? 'completed' 
-                        : 'failed',
-                    result 
-                  }
+                      ? 'completed' 
+                      : 'failed',
+                  result 
                 }
-              : msg
-          ));
+              };
+            }
+            return msg;
+          });
+        });
           setCurrentToolExecution(null);
+          currentExecutionIdRef.current = null;
         },
         onToolApproval: async (toolName: string, toolArgs: Record<string, any>) => {
           // Pause metrics while waiting for approval
@@ -175,14 +186,14 @@ export function useAgent(
                   onResumeRequest();
                 }
                 
-                // Always add the tool execution message (approved or rejected)
+                // Add the tool execution message after approval decision
+                // This ensures approval tools only appear in MessageHistory after being approved/rejected
                 const toolExecution: ToolExecution = {
-                  id: Math.random().toString(36).substr(2, 9),
+                  id: currentExecutionIdRef.current!,
                   name: toolName,
                   args: toolArgs,
-                  status: approved ? 'approved' : 'cancelled',
+                  status: approved ? 'approved' : 'canceled',
                   needsApproval: true,
-                  showDiff: toolName === 'create_file' || toolName === 'edit_file',
                 };
                 
                 addMessage({
@@ -190,6 +201,8 @@ export function useAgent(
                   content: approved ? `Executing ${toolName}...` : `Tool ${toolName} rejected by user`,
                   toolExecution,
                 });
+                
+                // No need to update currentToolExecution since we use the ref for matching
                 
                 resolve(approved);
               }
