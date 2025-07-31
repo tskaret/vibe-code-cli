@@ -84,7 +84,7 @@ export default function MessageHistory({ messages }: MessageHistoryProps) {
       {messages.length === 0 ? (
         <Box justifyContent="center" paddingY={2} flexDirection="column" alignItems="center">
           <Text color="gray" dimColor italic>
-            Ask me to help with coding tasks, debug issues, or explain code.
+            Ask for help with coding tasks, debug issues, or explain code.
           </Text>
           <Text color="gray" dimColor italic>
             Type /help for available commands and features.

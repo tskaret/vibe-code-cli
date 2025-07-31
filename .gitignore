@@ -1,5 +1,5 @@
 node_modules
 dist
-.groq-code-cli/
+.groq/
 .env
 .DS_Store

@@ -7,7 +7,7 @@ import { displayTree } from '../utils/file-ops.js';
 import { formatToolParams, executeTool } from '../tools/builtin/tools.js';
 import { validateToolArgs, hasValidator } from '../tools/validators.js';
 import { ALL_TOOLS, DANGEROUS_TOOLS } from '../tools/builtin/tool-schemas.js';
-import { ConfigManager } from '../utils/config.js';
+import { ConfigManager } from '../utils/local-settings.js';
 
 interface Message {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -102,8 +102,13 @@ export class Agent {
     directory: string,
     autoWrite: boolean
   ): Promise<Agent> {
+    // Check for default model in config if model not explicitly provided
+    const configManager = new ConfigManager();
+    const defaultModel = configManager.getDefaultModel();
+    const selectedModel = defaultModel || model;
+    
     const agent = new Agent(
-      model,
+      selectedModel,
       temperature,
       systemMessage,
       noContext,
@@ -183,6 +188,8 @@ When asked about your identity, you should identify yourself as a coding assista
 
   public setModel(model: string): void {
     this.model = model;
+    // Save as default model
+    this.configManager.setDefaultModel(model);
     // Update system message to reflect new model
     const newSystemMessage = this.buildDefaultSystemMessage();
     this.systemMessage = newSystemMessage;

@@ -3,10 +3,11 @@ import * as path from 'path';
 
 interface Config {
   groqApiKey?: string;
+  defaultModel?: string;
 }
 
-const CONFIG_DIR = '.groq-code-cli';
-const CONFIG_FILE = 'config.json';
+const CONFIG_DIR = '.groq';
+const CONFIG_FILE = 'local-settings.json';
 
 export class ConfigManager {
   private configPath: string;
@@ -76,6 +77,41 @@ export class ConfigManager {
       }
     } catch (error) {
       console.warn('Failed to clear API key:', error);
+    }
+  }
+
+  public getDefaultModel(): string | null {
+    try {
+      if (!fs.existsSync(this.configPath)) {
+        return null;
+      }
+
+      const configData = fs.readFileSync(this.configPath, 'utf8');
+      const config: Config = JSON.parse(configData);
+      return config.defaultModel || null;
+    } catch (error) {
+      console.warn('Failed to read default model:', error);
+      return null;
+    }
+  }
+
+  public setDefaultModel(model: string): void {
+    try {
+      this.ensureConfigDir();
+
+      let config: Config = {};
+      if (fs.existsSync(this.configPath)) {
+        const configData = fs.readFileSync(this.configPath, 'utf8');
+        config = JSON.parse(configData);
+      }
+
+      config.defaultModel = model;
+
+      fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), {
+        mode: 0o600 // Read/write for owner only
+      });
+    } catch (error) {
+      throw new Error(`Failed to save default model: ${error}`);
     }
   }
 }
