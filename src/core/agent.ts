@@ -5,7 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { displayTree } from '../utils/file-ops.js';
 import { formatToolParams, executeTool } from '../tools/builtin/tools.js';
-import { validateToolArgs, hasValidator } from '../tools/validators.js';
+import { validateReadBeforeEdit, getReadBeforeEditError } from '../tools/validators.js';
 import { ALL_TOOLS, DANGEROUS_TOOLS } from '../tools/builtin/tool-schemas.js';
 import { ConfigManager } from '../utils/local-settings.js';
 
@@ -347,11 +347,10 @@ When asked about your identity, you should identify yourself as a coding assista
         this.onToolStart(toolName, toolArgs);
       }
 
-      // Pre-validate tool arguments if validator exists
-      if (hasValidator(toolName)) {
-        const validationResult = await validateToolArgs(toolName, toolArgs);
-        if (!validationResult.isValid) {
-          const errorMessage = `Validation failed: ${validationResult.errors.join(', ')}`;
+      // Check read-before-edit for edit tools
+      if (toolName === 'edit_file' && toolArgs.file_path) {
+        if (!validateReadBeforeEdit(toolArgs.file_path)) {
+          const errorMessage = getReadBeforeEditError(toolArgs.file_path);
           const result = { error: errorMessage, success: false };
           if (this.onToolEnd) {
             this.onToolEnd(toolName, result);

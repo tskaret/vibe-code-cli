@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import * as fs from 'fs';
 import * as path from 'path';
-import { validateToolArgs, hasValidator } from '../../../tools/validators.js';
+import { validateReadBeforeEdit, getReadBeforeEditError } from '../../../tools/validators.js';
 
 interface DiffChunk {
   header: string;
@@ -37,11 +37,10 @@ export default function DiffPreview({ toolName, toolArgs, isHistorical = false }
       setIsLoading(true);
       setError(null);
 
-      // Pre-validate tool arguments if validator exists (skip for historical edits)
-      if (!isHistorical && hasValidator(toolName)) {
-        const validationResult = await validateToolArgs(toolName, toolArgs);
-        if (!validationResult.isValid) {
-          setError(`Validation error: ${validationResult.errors.join(', ')}`);
+      // Check read-before-edit for edit tools (skip for historical edits)
+      if (!isHistorical && toolName === 'edit_file' && toolArgs.file_path) {
+        if (!validateReadBeforeEdit(toolArgs.file_path)) {
+          setError(getReadBeforeEditError(toolArgs.file_path));
           return;
         }
       }
