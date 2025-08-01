@@ -4,43 +4,19 @@ A TypeScript-based CLI tool powered by Groq's lightning-fast inference for inter
 
 ![Preview](docs/thumbnail.png)
 
-## TODO
->Please feel free to tackle any of these below and make a PR! It would greatly help me out.
-
-- Stream tokens in src/ui/TokenMetrics.tsx
-- Flags in cli.ts (e.g. --auto-write) haven't been updated in a while
-- MCP
-- Version control without Git: Checkpointing. Could create commits in a hidden, shadow repo that can be reverted to at any point.
-- "New thread with summary" when hitting context limit
-- GROQ.md support
-- MAX mode/flag --max (uses lots of tokens)?
-- Emojis are a little overkill and lead to buggy Ink rendering
-- /login support to redirect users to https://console.groq.com/home for sign in, or enter API key
-- /login API key storing will need to be updated to support installations via distribution
-- Esc key to interrupt at any time
-- More slash commands
-- Markdown rendering. Tried a hacky workaround in utils/markdown.ts, but didn't quite work.
-- Update lint code tool
-
-- Prepare for distribution
-
 ## Installation
 
 ### For Developing
 
 ```bash
-git clone https://github.com/groq/groq-code-cli.git
+git clone https://github.com/build-with-groq/groq-code-cli.git
 cd groq-code-cli
 npm install
 npm run build
-npm link
-npm run dev
-```
+npm link  # Enables the `groq` command in any directory
 
-### For End Users
-
-```bash
-...
+# Run this in the background during development to automatically apply any changes to the source code
+npm run dev  
 ```
 
 ## Usage
@@ -70,12 +46,14 @@ Options:
 
 ### Authentication
 
-On first use, you'll be prompted to enter your Groq API key:
+On first use in a directory, start a chat and type the `/login` command:
 
 ```bash
 groq
-# Follow the login prompt to enter your API key
 ```
+![Login](docs/login.png)
+
+
 
 Get your API key from [Groq Console](https://console.groq.com/keys).
 
@@ -85,11 +63,8 @@ export GROQ_API_KEY=your_api_key_here
 ```
 
 ### Available Commands
-
-Once running, you can use these slash commands:
-
-- `/login` - Set or update your Groq API key
 - `/help` - Show available commands
+
 
 ## Development
 

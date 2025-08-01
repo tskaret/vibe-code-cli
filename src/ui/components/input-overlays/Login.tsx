@@ -45,7 +45,7 @@ export default function Login({ onSubmit, onCancel }: LoginProps) {
       </Box>
       
       <Box marginBottom={1}>
-        <Text color="gray" dimColor>
+        <Text color="gray">
           Enter your Groq API key to continue. You can get one from <Text underline>https://console.groq.com/keys</Text>
         </Text>
       </Box>
