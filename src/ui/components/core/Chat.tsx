@@ -9,6 +9,7 @@ import TokenMetrics from '../display/TokenMetrics.js';
 import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
 import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
+import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import { handleSlashCommand } from '../../../commands/index.js';
 
 interface ChatProps {
@@ -46,9 +47,11 @@ export default function Chat({ agent }: ChatProps) {
     isProcessing,
     currentToolExecution,
     pendingApproval,
+    pendingMaxIterations,
     sessionAutoApprove,
     sendMessage,
     approveToolExecution,
+    respondToMaxIterations,
     addMessage,
     setApiKey,
     clearHistory,
@@ -171,6 +174,12 @@ export default function Chat({ agent }: ChatProps) {
             onApprove={() => handleApproval(true, false)}
             onReject={() => handleApproval(false, false)}
             onApproveWithAutoSession={() => handleApproval(true, true)}
+          />
+        ) : pendingMaxIterations ? (
+          <MaxIterationsContinue
+            maxIterations={pendingMaxIterations.maxIterations}
+            onContinue={() => respondToMaxIterations(true)}
+            onStop={() => respondToMaxIterations(false)}
           />
         ) : showLogin ? (
           <Login

@@ -38,6 +38,10 @@ export function useAgent(
     toolArgs: Record<string, any>;
     resolve: (approvalResult: { approved: boolean; autoApproveSession?: boolean }) => void;
   } | null>(null);
+  const [pendingMaxIterations, setPendingMaxIterations] = useState<{
+    maxIterations: number;
+    resolve: (shouldContinue: boolean) => void;
+  } | null>(null);
 
   const addMessage = useCallback((message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
@@ -80,7 +84,6 @@ export function useAgent(
     setIsProcessing(true);
 
     try {
-
       // Set up tool execution callbacks
       agent.setToolCallbacks({
         onThinkingText: (content: string) => {
@@ -125,7 +128,7 @@ export function useAgent(
             onAddTokens(argsText);
           }
           
-          // Always add tool execution message - approval is handled separately
+          // Always add tool execution message; approval is handled separately
           addMessage({
             role: 'tool_execution',
             content: `Executing ${name}...`,
@@ -218,6 +221,27 @@ export function useAgent(
             });
           });
         },
+        onMaxIterations: async (maxIterations: number) => {          
+          // Pause metrics while waiting for continuation decision
+          if (onPauseRequest) {
+            onPauseRequest();
+          }
+          
+          return new Promise<boolean>((resolve) => {
+            setPendingMaxIterations({ 
+              maxIterations, 
+              resolve: (shouldContinue: boolean) => {
+                
+                // Resume metrics after decision
+                if (onResumeRequest) {
+                  onResumeRequest();
+                }
+                
+                resolve(shouldContinue);
+              }
+            });
+          });
+        },
       });
 
       await agent.chat(userInput);
@@ -245,6 +269,13 @@ export function useAgent(
     }
   }, [pendingApproval]);
 
+  const respondToMaxIterations = useCallback((shouldContinue: boolean) => {
+    if (pendingMaxIterations) {
+      pendingMaxIterations.resolve(shouldContinue);
+      setPendingMaxIterations(null);
+    }
+  }, [pendingMaxIterations]);
+
   const setApiKey = useCallback((apiKey: string) => {
     agent.setApiKey(apiKey);
   }, [agent]);
@@ -258,7 +289,7 @@ export function useAgent(
   const clearHistory = useCallback(() => {
     setMessages([]);
     setUserMessageHistory([]);
-    // Don't reset sessionAutoApprove - it should persist across /clear
+    // Don't reset sessionAutoApprove, it should persist across /clear
     agent.clearHistory();
   }, [agent]);
 
@@ -268,9 +299,11 @@ export function useAgent(
     isProcessing,
     currentToolExecution,
     pendingApproval,
+    pendingMaxIterations,
     sessionAutoApprove,
     sendMessage,
     approveToolExecution,
+    respondToMaxIterations,
     addMessage,
     setApiKey,
     clearHistory,

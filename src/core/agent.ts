@@ -1,10 +1,5 @@
 import Groq from 'groq-sdk';
-import chalk from 'chalk';
-import * as readline from 'readline';
-import * as os from 'os';
-import * as path from 'path';
-import { displayTree } from '../utils/file-ops.js';
-import { formatToolParams, executeTool } from '../tools/builtin/tools.js';
+import { executeTool } from '../tools/builtin/tools.js';
 import { validateReadBeforeEdit, getReadBeforeEditError } from '../tools/validators.js';
 import { ALL_TOOLS, DANGEROUS_TOOLS, APPROVAL_REQUIRED_TOOLS } from '../tools/builtin/tool-schemas.js';
 import { ConfigManager } from '../utils/local-settings.js';
@@ -22,9 +17,6 @@ export class Agent {
   private apiKey: string | null = null;
   private model: string;
   private temperature: number;
-  private noContext: boolean;
-  private directory: string;
-  private autoWrite: boolean;
   private sessionAutoApprove: boolean = false;
   private systemMessage: string;
   private configManager: ConfigManager;
@@ -33,20 +25,15 @@ export class Agent {
   private onToolApproval?: (toolName: string, toolArgs: Record<string, any>) => Promise<{ approved: boolean; autoApproveSession?: boolean }>;
   private onThinkingText?: (content: string) => void;
   private onFinalMessage?: (content: string) => void;
+  private onMaxIterations?: (maxIterations: number) => Promise<boolean>;
 
   private constructor(
     model: string,
     temperature: number,
-    systemMessage: string | null,
-    noContext: boolean,
-    directory: string,
-    autoWrite: boolean
+    systemMessage: string | null
   ) {
     this.model = model;
     this.temperature = temperature;
-    this.noContext = noContext;
-    this.directory = directory;
-    this.autoWrite = autoWrite;
     this.configManager = new ConfigManager();
 
     // Build system message
@@ -60,43 +47,10 @@ export class Agent {
     this.messages.push({ role: 'system', content: this.systemMessage });
   }
 
-  /**
-   * Gather lightweight directory context - just environment info and file tree
-   */
-  private static async gatherDirectoryContext(directory: string = '.'): Promise<string> {
-    const context: string[] = [];
-    const directoryPath = path.resolve(directory);
-    
-    // Environment information
-    context.push('=== ENVIRONMENT ===');
-    context.push(`Operating System: ${os.platform()} ${os.release()}`);
-    context.push(`Architecture: ${os.arch()}`);
-    context.push(`Node.js Version: ${process.version}`);
-    context.push(`Current Working Directory: ${directoryPath}`);
-    context.push(`Date: ${new Date().toISOString()}`);
-    context.push(`User: ${os.userInfo().username}`);
-    
-    context.push('\n=== PROJECT STRUCTURE ===');
-    
-    // Get directory tree using existing displayTree function
-    try {
-      const tree = await displayTree(directory, '*', true, false);
-      context.push(tree);
-    } catch (error) {
-      context.push(`Error generating directory tree: ${error}`);
-    }
-    
-    return context.join('\n');
-  }
-
-  // TODO: Add remaining flags
   static async create(
     model: string,
     temperature: number,
-    systemMessage: string | null,
-    noContext: boolean,
-    directory: string,
-    autoWrite: boolean
+    systemMessage: string | null
   ): Promise<Agent> {
     // Check for default model in config if model not explicitly provided
     const configManager = new ConfigManager();
@@ -106,23 +60,9 @@ export class Agent {
     const agent = new Agent(
       selectedModel,
       temperature,
-      systemMessage,
-      noContext,
-      directory,
-      autoWrite
+      systemMessage
     );
 
-    // Add directory context if not disabled
-    if (!noContext) {
-      try {
-        const context = await Agent.gatherDirectoryContext(directory);
-        if (context) {
-          const contextMsg = `Directory context for ${directory}:\n\n${context}`;
-          agent.messages.push({ role: 'system', content: contextMsg });
-        }
-      } catch (error) {
-      }
-    }
 
     return agent;
   }
@@ -153,12 +93,14 @@ When asked about your identity, you should identify yourself as a coding assista
     onToolApproval?: (toolName: string, toolArgs: Record<string, any>) => Promise<{ approved: boolean; autoApproveSession?: boolean }>;
     onThinkingText?: (content: string) => void;
     onFinalMessage?: (content: string) => void;
+    onMaxIterations?: (maxIterations: number) => Promise<boolean>;
   }) {
     this.onToolStart = callbacks.onToolStart;
     this.onToolEnd = callbacks.onToolEnd;
     this.onToolApproval = callbacks.onToolApproval;
     this.onThinkingText = callbacks.onThinkingText;
     this.onFinalMessage = callbacks.onFinalMessage;
+    this.onMaxIterations = callbacks.onMaxIterations;
   }
 
   public setApiKey(apiKey: string): void {
@@ -225,7 +167,7 @@ When asked about your identity, you should identify yourself as a coding assista
     // Add user message
     this.messages.push({ role: 'user', content: userInput });
 
-    const maxIterations = 20;
+    const maxIterations = 50;
     let iteration = 0;
 
     while (true) { // Outer loop for iteration reset
@@ -277,7 +219,7 @@ When asked about your identity, you should identify yourself as a coding assista
                 content: JSON.stringify(result)
               });
 
-              // Check if user rejected the tool - if so, stop processing
+              // Check if user rejected the tool, if so, stop processing
               if (result.userRejected) {
                 // Add a note to the conversation that the user rejected the tool
                 this.messages.push({
@@ -293,7 +235,7 @@ When asked about your identity, you should identify yourself as a coding assista
             continue;
           }
 
-          // No tool calls - this is the final response
+          // No tool calls, this is the final response
           const content = message.content || '';
           
           if (this.onFinalMessage) {
@@ -314,9 +256,12 @@ When asked about your identity, you should identify yourself as a coding assista
         }
       }
 
-      // Hit max iterations - ask user if they want to continue
+      // Hit max iterations, ask user if they want to continue
       if (iteration >= maxIterations) {
-        const shouldContinue = await this.askContinue(maxIterations);
+        let shouldContinue = false;
+        if (this.onMaxIterations) {
+          shouldContinue = await this.onMaxIterations(maxIterations);
+        }
         if (shouldContinue) {
           iteration = 0; // Reset iteration counter
           continue; // Continue the outer loop
@@ -362,7 +307,7 @@ When asked about your identity, you should identify yourself as a coding assista
       // Check if tool needs approval (only after validation passes)
       const isDangerous = DANGEROUS_TOOLS.includes(toolName);
       const requiresApproval = APPROVAL_REQUIRED_TOOLS.includes(toolName);
-      const needsApproval = (isDangerous || requiresApproval) && !this.autoWrite;
+      const needsApproval = isDangerous || requiresApproval;
       
       // For APPROVAL_REQUIRED_TOOLS, check if session auto-approval is enabled
       const canAutoApprove = requiresApproval && !isDangerous && this.sessionAutoApprove;
@@ -373,8 +318,8 @@ When asked about your identity, you should identify yourself as a coding assista
         if (this.onToolApproval) {
           approvalResult = await this.onToolApproval(toolName, toolArgs);
         } else {
-          const approved = await this.getToolApproval(toolName, toolArgs);
-          approvalResult = { approved };
+          // No approval callback available, reject by default
+          approvalResult = { approved: false };
         }
         
         // Enable session auto-approval if requested (only for APPROVAL_REQUIRED_TOOLS)
@@ -406,28 +351,4 @@ When asked about your identity, you should identify yourself as a coding assista
       return { error: errorMsg, success: false };
     }
   }
-
-  private async getToolApproval(toolName: string, toolArgs: Record<string, any>): Promise<boolean> {
-    console.log(chalk.yellow(`⚠️ ${toolName} requires approval`));
-    return await this.confirm(`Execute ${toolName}?`);
-  }
-
-  private async askContinue(maxIterations: number): Promise<boolean> {
-    return await this.confirm(`Maximum iterations (${maxIterations}) reached. Continue?`);
-  }
-
-  private async confirm(question: string): Promise<boolean> {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    return new Promise((resolve) => {
-      rl.question(`${question} (y/N): `, (answer) => {
-        rl.close();
-        resolve(answer.toLowerCase().startsWith('y'));
-      });
-    });
-  }
-
 }
