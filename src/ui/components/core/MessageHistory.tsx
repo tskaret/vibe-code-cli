@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { ChatMessage } from '../../hooks/useAgent.js';
 import ToolHistoryItem from '../display/ToolHistoryItem.js';
+import { parseMarkdown, MarkdownElement, parseInlineElements } from '../../../utils/markdown.js';
 
 interface MessageHistoryProps {
   messages: ChatMessage[];
@@ -37,11 +38,46 @@ export default function MessageHistory({ messages }: MessageHistoryProps) {
           </Box>
         );
         
-      // TODO: Add symbol in front of each assistant message
       case 'assistant':
+        const markdownElements = parseMarkdown(message.content);
         return (
-          <Box key={message.id} marginBottom={1}>
-            <Text>{message.content}</Text>
+          <Box key={message.id} marginBottom={1} flexDirection="column">
+            {markdownElements.map((element, index) => {
+              switch (element.type) {
+                case 'code-block':
+                  return (
+                    <Box key={index} marginY={1} paddingLeft={2}>
+                      <Text color="cyan">{element.content}</Text>
+                    </Box>
+                  );
+                case 'heading':
+                  return (
+                    <Text key={index} bold color={element.level && element.level <= 2 ? "yellow" : "white"}>
+                      {element.content}
+                    </Text>
+                  );
+                case 'mixed-line':
+                  const inlineElements = parseInlineElements(element.content);
+                  return (
+                    <Text key={index}>
+                      {inlineElements.map((inlineElement, inlineIndex) => {
+                        switch (inlineElement.type) {
+                          case 'code':
+                            return <Text key={inlineIndex} color="cyan">{inlineElement.content}</Text>;
+                          case 'bold':
+                            return <Text key={inlineIndex} bold>{inlineElement.content}</Text>;
+                          case 'italic':
+                            return <Text key={inlineIndex} italic>{inlineElement.content}</Text>;
+                          default:
+                            return <Text key={inlineIndex}>{inlineElement.content}</Text>;
+                        }
+                      })}
+                    </Text>
+                  );
+                default:
+                  return <Text key={index}>{element.content}</Text>;
+              }
+            })}
           </Box>
         );
         
