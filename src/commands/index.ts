@@ -23,7 +23,11 @@ export function handleSlashCommand(
   command: string, 
   context: CommandContext
 ) {
-  const cmd = command.slice(1).toLowerCase();
+  // Extract the command part, everything up to the first space or end of string
+  const fullCommand = command.slice(1);
+  const spaceIndex = fullCommand.indexOf(' ');
+  const cmd = spaceIndex > -1 ? fullCommand.substring(0, spaceIndex).toLowerCase() : fullCommand.toLowerCase();
+  
   const commandDef = getAvailableCommands().find(c => c.command === cmd);
   
   // Add user message for the command
