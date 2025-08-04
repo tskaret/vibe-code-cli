@@ -1,8 +1,37 @@
-# Groq Code CLI
+<h2 align="center">
+ <br>
+ <img src="docs/ascii-art.png" alt="Groq Code CLI" width="400">
+ <br>
+ <br>
+ Groq Code CLI: A highly customizable, lightweight, and open-source coding CLI powered by Groq for instant iteration.
+ <br>
+</h2>
 
-A TypeScript-based CLI tool powered by Groq's lightning-fast inference for interactive coding assistance. Built with React Ink for a modern terminal UI experience.
+<p align="center">
+ <a href="https://github.com/build-with-groq/groq-code-cli/stargazers"><img src="https://img.shields.io/github/stars/build-with-groq/groq-code-cli"></a>
+ <a href="https://github.com/build-with-groq/groq-code-cli/blob/main/LICENSE">
+ <img src="https://img.shields.io/badge/License-MIT-green.svg">
+ </a>
+</p>
 
-![Preview](docs/thumbnail.png)
+<p align="center">
+ <a href="#Overview">Overview</a> •
+ <a href="#Installation">Installation</a> •
+ <a href="#Usage">Usage</a> •
+ <a href="#Development">Development</a>
+</p>
+
+<br>
+
+Coming soon: [Demo of Groq Code CLI]()
+> Demo of Groq Code CLI
+
+<br>
+
+# Overview
+
+...
+
 
 ## Installation
 
@@ -13,18 +42,17 @@ git clone https://github.com/build-with-groq/groq-code-cli.git
 cd groq-code-cli
 npm install
 npm run build
-npm link  # Enables the `groq` command in any directory
+npm link        # Enables the `groq` command in any directory
+```
 
+```bash
 # Run this in the background during development to automatically apply any changes to the source code
 npm run dev  
 ```
 
 ## Usage
-
-### Basic Usage
-
 ```bash
-# Start interactive session
+# Start chat session
 groq
 ```
 
@@ -34,30 +62,28 @@ groq
 groq [prompt] [options]
 
 Options:
-  -t, --temperature <temp>      Temperature for generation (default: 0.7)
+  -t, --temperature <temp>      Temperature for generation (default: 1)
   -s, --system <message>        Custom system message
-  --no-context                  Disable directory context
-  --include-all                 Include config and documentation files
-  -d, --directory <directory>   Directory to use as context (default: .)
-  --auto-write                  Skip approval prompts and automatically execute tools
   -h, --help                    Display help for command
   -V, --version                 Display version number
 ```
 
 ### Authentication
 
-On first use in a directory, start a chat and type the `/login` command:
+On first use, start a chat:
 
 ```bash
 groq
 ```
+
+And type the `/login` command:
+
 ![Login](docs/login.png)
+>Get your API key from the <strong>Groq Console</strong> [here](https://console.groq.com/keys)
 
+This creates a .groq/ folder in your home directory that stores your API key, default model selection, and any other config you wish to add.
 
-
-Get your API key from [Groq Console](https://console.groq.com/keys).
-
-You can also set it via environment variable:
+You can also set your API key for your current directory via environment variable:
 ```bash
 export GROQ_API_KEY=your_api_key_here
 ```
@@ -87,10 +113,11 @@ npm link
 npm run dev
 ```
 
-## License
 
-...
+## Contributing and Support
 
-## Support
+Improvements through PRs are welcome!
 
 For issues and feature requests, please open an issue on GitHub.
+
+#### Share what you create with Groq on our [socials](https://x.com/GroqInc)!

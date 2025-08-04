@@ -361,7 +361,7 @@ export const UPDATE_TASKS_SCHEMA: ToolSchema = {
 
 // Tool Collections
 
-// Core file operations - always available
+// Core file operations; always available
 export const CORE_TOOLS = [
   READ_FILE_SCHEMA,
   CREATE_FILE_SCHEMA,
@@ -381,7 +381,7 @@ export const TASK_TOOLS = [
   UPDATE_TASKS_SCHEMA
 ];
 
-// Execution tools - require careful approval
+// Execution tools
 export const EXECUTION_TOOLS = [
   EXECUTE_COMMAND_SCHEMA
 ];

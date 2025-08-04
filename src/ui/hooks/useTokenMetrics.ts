@@ -22,7 +22,8 @@ export function useTokenMetrics() {
   const totalTokensRef = useRef<number>(0);
   const pauseStartTimeRef = useRef<Date | null>(null);
 
-  // Simple tokenizer - estimates tokens by word count * 1.3 (rough approximation)
+  // TODO
+  // Simple tokenizer, estimates tokens by word count * 1.3 (rough approximation)
   const estimateTokens = useCallback((text: string): number => {
     if (!text) return 0;
     const words = text.trim().split(/\s+/).length;

@@ -370,7 +370,7 @@ export async function searchFiles(
           searchRegex = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
           break;
         case 'fuzzy':
-          // Simple fuzzy search - insert .* between characters
+          // Simple fuzzy search, insert .* between characters
           const fuzzyPattern = pattern.split('').map(escapeRegex).join('.*');
           searchRegex = new RegExp(fuzzyPattern, caseSensitive ? 'g' : 'gi');
           break;
@@ -561,7 +561,7 @@ async function collectFiles(
 function matchesPattern(filename: string, pattern: string): boolean {
   if (pattern === '*') return true;
   
-  // Simple glob matching - convert * to .* and ? to .
+  // Simple glob matching, convert * to .* and ? to .
   const regexPattern = pattern
     .replace(/\./g, '\\.')
     .replace(/\*/g, '.*')
@@ -764,7 +764,7 @@ export async function updateTasks(taskUpdates: TaskUpdate[]): Promise<ToolResult
   }
 }
 
-// Tool Registry - Maps tool names to functions
+// Tool Registry: maps tool names to functions
 export const TOOL_REGISTRY = {
   read_file: readFile,
   create_file: createFile,

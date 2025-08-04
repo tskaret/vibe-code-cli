@@ -125,7 +125,7 @@ export function shouldIgnore(filePath: string): boolean {
   // Check ignore patterns
   for (const pattern of IGNORE_PATTERNS) {
     if (pattern.includes('*')) {
-      // Simple glob matching - convert * to regex
+      // Simple glob matching, convert * to regex
       const regexPattern = pattern.replace(/\*/g, '.*');
       const regex = new RegExp(regexPattern);
       if (regex.test(name)) {

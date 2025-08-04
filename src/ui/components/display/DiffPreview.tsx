@@ -61,7 +61,7 @@ export default function DiffPreview({ toolName, toolArgs, isHistorical = false }
           reconstructedOriginal = toolArgs.old_text;
           simulatedContent = toolArgs.new_text;
         } else if (toolArgs.content !== undefined) {
-          // create_file operation - show as adding all content
+          // create_file operation, show as adding all content
           reconstructedOriginal = '';
           simulatedContent = toolArgs.content;
         } else {

@@ -11,9 +11,6 @@ const program = new Command();
 async function startChat(
   temperature: number,
   system: string | null,
-  noContext: boolean,
-  directory: string,
-  autoWrite: boolean,
   initialPrompt?: string
 ): Promise<void> {
   console.log(chalk.hex('#FF4500')(`                             
@@ -21,7 +18,7 @@ async function startChat(
  ███░░███░░███░░░██ ███░░███ ███░░███ 
 ░███ ░███ ░███ ░░░ ░███ ░███░███ ░███ 
 ░███ ░███ ░███     ░███ ░███░███ ░███ 
-░░███ ███ ░███     ░░██████ ░░███ ███ 
+░░███░███ ░███     ░░██████ ░░███░███ 
  ░░░░░███ ░░░░      ░░░░░░   ░░░░░███ 
  ██  ░███                        ░███ 
 ░░██████                         ░███
@@ -42,10 +39,7 @@ async function startChat(
     const agent = await Agent.create(
       defaultModel,
       temperature,
-      system,
-      noContext,
-      directory,
-      autoWrite
+      system
     );
 
     render(React.createElement(App, { agent, initialPrompt }));
@@ -57,22 +51,16 @@ async function startChat(
 
 program
   .name('groq')
-  .description('Groq CLI - TypeScript Migration with Ink UI')
+  .description('Groq Code CLI')
   .version('1.0.0')
   .argument('[prompt]', 'Initial prompt (optional)')
 
-  .option('-t, --temperature <temperature>', 'Temperature for generation', parseFloat, 0.7)
+  .option('-t, --temperature <temperature>', 'Temperature for generation', parseFloat, 1.0)
   .option('-s, --system <message>', 'Custom system message')
-  .option('--no-context', 'Disable directory context')
-  .option('-d, --directory <directory>', 'Directory to use as context', '.')
-  .option('--auto-write', 'Skip approval prompts and automatically execute tools')
   .action(async (prompt, options) => {
     await startChat(
       options.temperature,
       options.system || null,
-      options.noContext || false,
-      options.directory,
-      options.autoWrite || false,
       prompt
     );
   });

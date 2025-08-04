@@ -72,10 +72,10 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
       return (
         <>
           {stdoutLines.length > 0 && stdoutLines.some(line => line.trim()) && (
-            <Text color="white">{stdoutLines.join('\n')}</Text>
+            <Text color="white">{stdoutLines.join('\n').trimEnd()}</Text>
           )}
           {stderrLines.length > 0 && stderrLines.some(line => line.trim()) && (
-            <Text color="yellow">{stderrLines.join('\n')}</Text>
+            <Text color="yellow">{stderrLines.join('\n').trimEnd()}</Text>
           )}
         </>
       );
@@ -90,12 +90,12 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
       );
     }
     
-    // Handle file content for read_file - don't show content
+    // Handle file content for read_file; don't show content
     if (toolName === 'read_file') {
       return null;
     }
 
-    // Handle file content for search_files - don't show content
+    // Handle file content for search_files; don't show content
     if (toolName === 'search_files') {
       return null;
     }
