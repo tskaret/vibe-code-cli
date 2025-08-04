@@ -398,10 +398,14 @@ export const SAFE_TOOLS = [
   'update_tasks'
 ];
 
-// Dangerous tools that always require approval
-export const DANGEROUS_TOOLS = [
+// Tools that require approval, unless auto-approval is enabled
+export const APPROVAL_REQUIRED_TOOLS = [
   'create_file',
   'edit_file',
+];
+
+// Dangerous tools that always require approval
+export const DANGEROUS_TOOLS = [
   'delete_file',
   'execute_command'
 ];

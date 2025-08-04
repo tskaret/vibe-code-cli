@@ -46,11 +46,13 @@ export default function Chat({ agent }: ChatProps) {
     isProcessing,
     currentToolExecution,
     pendingApproval,
+    sessionAutoApprove,
     sendMessage,
     approveToolExecution,
     addMessage,
     setApiKey,
     clearHistory,
+    toggleAutoApprove,
   } = agentHook;
 
   const { exit } = useApp();
@@ -63,6 +65,9 @@ export default function Chat({ agent }: ChatProps) {
   useInput((input, key) => {
     if (key.ctrl && input === 'c') {
       exit();
+    }
+    if (key.shift && key.tab) {
+      toggleAutoApprove();
     }
   });
 
@@ -98,8 +103,8 @@ export default function Chat({ agent }: ChatProps) {
     }
   };
 
-  const handleApproval = (approved: boolean) => {
-    approveToolExecution(approved);
+  const handleApproval = (approved: boolean, autoApproveSession?: boolean) => {
+    approveToolExecution(approved, autoApproveSession);
   };
 
   const handleLogin = (apiKey: string) => {
@@ -163,8 +168,9 @@ export default function Chat({ agent }: ChatProps) {
           <PendingToolApproval
             toolName={pendingApproval.toolName}
             toolArgs={pendingApproval.toolArgs}
-            onApprove={() => handleApproval(true)}
-            onReject={() => handleApproval(false)}
+            onApprove={() => handleApproval(true, false)}
+            onReject={() => handleApproval(false, false)}
+            onApproveWithAutoSession={() => handleApproval(true, true)}
           />
         ) : showLogin ? (
           <Login
@@ -192,10 +198,17 @@ export default function Chat({ agent }: ChatProps) {
         )}
       </Box>
 
-      <Box justifyContent="flex-end" paddingRight={1}>
-        <Text color="gray" dimColor>
-          {agent.getCurrentModel?.() || ''}
-        </Text>
+      <Box justifyContent="space-between" paddingX={1}>
+        <Box>
+          <Text color="cyan" bold>
+            {sessionAutoApprove ? 'auto-approve edits is on' : ''}
+          </Text>
+        </Box>
+        <Box>
+          <Text color="gray" dimColor>
+            {agent.getCurrentModel?.() || ''}
+          </Text>
+        </Box>
       </Box>
     </Box>
   );

@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { render } from 'ink';
@@ -36,11 +34,12 @@ async function startChat(
 ░░██████ ░░██████ ░░███████ ░░██████  
  ░░░░░░   ░░░░░░   ░░░░░░░░  ░░░░░░   
 `));
-
+    
+  let defaultModel = 'moonshotai/kimi-k2-instruct';
   try {
     // Create agent (API key will be checked on first message)
     const agent = await Agent.create(
-      'moonshotai/kimi-k2-instruct',
+      defaultModel,
       temperature,
       system,
       noContext,

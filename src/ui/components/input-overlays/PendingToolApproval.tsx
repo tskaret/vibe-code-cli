@@ -2,19 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import DiffPreview from '../display/DiffPreview.js';
 import { formatToolParams } from '../../../tools/builtin/tools.js';
+import { DANGEROUS_TOOLS } from '../../../tools/builtin/tool-schemas.js';
 
 interface PendingToolApprovalProps {
   toolName: string;
   toolArgs: Record<string, any>;
   onApprove: () => void;
   onReject: () => void;
+  onApproveWithAutoSession?: () => void;
 }
 
 export default function PendingToolApproval({ 
   toolName, 
   toolArgs, 
   onApprove, 
-  onReject 
+  onReject,
+  onApproveWithAutoSession 
 }: PendingToolApprovalProps) {
   const [selectedApprovalOption, setSelectedApprovalOption] = useState(0);
 
@@ -25,14 +28,21 @@ export default function PendingToolApproval({
 
   // Handle approval input
   useInput((input, key) => {
+    const isDangerous = DANGEROUS_TOOLS.includes(toolName);
+    const maxOptions = isDangerous ? 1 : 2; // Dangerous tools only have Yes/No, others have Yes/Auto/No
+    
     if (key.upArrow) {
       setSelectedApprovalOption(prev => Math.max(0, prev - 1));
     } else if (key.downArrow) {
-      setSelectedApprovalOption(prev => Math.min(1, prev + 1));
+      setSelectedApprovalOption(prev => Math.min(maxOptions, prev + 1));
     } else if (key.return) {
       if (selectedApprovalOption === 0) {
         onApprove();
+      } else if (selectedApprovalOption === 1 && !isDangerous) {
+        // Middle option: "Yes, and don't ask again this session"
+        onApproveWithAutoSession?.();
       } else {
+        // Last option: "No"
         onReject();
       }
     }
@@ -93,10 +103,21 @@ export default function PendingToolApproval({
               {selectedApprovalOption === 0 ? <Text bold>{">"}</Text> : "  "} Yes
             </Text>
           </Box>
+          
+          {/* Show auto-approval option only for non-dangerous tools */}
+          {!DANGEROUS_TOOLS.includes(toolName) && (
+            <Box>
+              <Text color={selectedApprovalOption === 1 ? "black" : "blue"}
+                    backgroundColor={selectedApprovalOption === 1 ? "rgb(114, 159, 214)" : undefined}>
+                {selectedApprovalOption === 1 ? <Text bold>{">"}</Text> : "  "} Yes, and don't ask again this session
+              </Text>
+            </Box>
+          )}
+          
           <Box>
-            <Text color={selectedApprovalOption === 1 ? "black" : "red"}
-                  backgroundColor={selectedApprovalOption === 1 ? "rgb(214, 114, 114)" : undefined}>
-              {selectedApprovalOption === 1 ? <Text bold>{">"}</Text> : "  "} No, tell Groq what to do differently (esc)
+            <Text color={selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? "black" : "red"}
+                  backgroundColor={selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? "rgb(214, 114, 114)" : undefined}>
+              {selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? <Text bold>{">"}</Text> : "  "} No, tell Groq what to do differently (esc)
             </Text>
           </Box>
         </Box>

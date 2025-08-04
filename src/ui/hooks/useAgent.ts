@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Agent } from '../../core/agent.js';
-import { DANGEROUS_TOOLS } from '../../tools/builtin/tool-schemas.js';
+import { DANGEROUS_TOOLS, APPROVAL_REQUIRED_TOOLS } from '../../tools/builtin/tool-schemas.js';
 
 export interface ChatMessage {
   id: string;
@@ -31,11 +31,12 @@ export function useAgent(
   const [userMessageHistory, setUserMessageHistory] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentToolExecution, setCurrentToolExecution] = useState<ToolExecution | null>(null);
+  const [sessionAutoApprove, setSessionAutoApprove] = useState(false);
   const currentExecutionIdRef = useRef<string | null>(null);
   const [pendingApproval, setPendingApproval] = useState<{
     toolName: string;
     toolArgs: Record<string, any>;
-    resolve: (approved: boolean) => void;
+    resolve: (approvalResult: { approved: boolean; autoApproveSession?: boolean }) => void;
   } | null>(null);
 
   const addMessage = useCallback((message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
@@ -112,7 +113,7 @@ export function useAgent(
             name,
             args,
             status: 'pending',
-            needsApproval: DANGEROUS_TOOLS.includes(name),
+            needsApproval: DANGEROUS_TOOLS.includes(name) || APPROVAL_REQUIRED_TOOLS.includes(name),
           };
           
           // Store the ID in ref for reliable matching across callbacks
@@ -124,15 +125,12 @@ export function useAgent(
             onAddTokens(argsText);
           }
           
-          // Only add message for tools that don't require approval
-          // Approval tools will be added after approval decision
-          if (!toolExecution.needsApproval) {
-            addMessage({
-              role: 'tool_execution',
-              content: `Executing ${name}...`,
-              toolExecution,
-            });
-          }
+          // Always add tool execution message - approval is handled separately
+          addMessage({
+            role: 'tool_execution',
+            content: `Executing ${name}...`,
+            toolExecution,
+          });
           
           setCurrentToolExecution(toolExecution);
         },
@@ -174,41 +172,48 @@ export function useAgent(
           setCurrentToolExecution(null);
           currentExecutionIdRef.current = null;
         },
-        onToolApproval: async (toolName: string, toolArgs: Record<string, any>) => {
+        onToolApproval: async (toolName: string, toolArgs: Record<string, any>) => {          
           // Pause metrics while waiting for approval
           if (onPauseRequest) {
             onPauseRequest();
           }
           
-          return new Promise<boolean>((resolve) => {
+          return new Promise<{ approved: boolean; autoApproveSession?: boolean }>((resolve) => {
             setPendingApproval({ 
               toolName, 
               toolArgs, 
-              resolve: (approved: boolean) => {
+              resolve: (approvalResult: { approved: boolean; autoApproveSession?: boolean }) => {
+                
                 // Resume metrics after approval decision
                 if (onResumeRequest) {
                   onResumeRequest();
                 }
                 
-                // Add the tool execution message after approval decision
-                // This ensures approval tools only appear in MessageHistory after being approved/rejected
-                const toolExecution: ToolExecution = {
-                  id: currentExecutionIdRef.current!,
-                  name: toolName,
-                  args: toolArgs,
-                  status: approved ? 'approved' : 'canceled',
-                  needsApproval: true,
-                };
-                
-                addMessage({
-                  role: 'tool_execution',
-                  content: approved ? `Executing ${toolName}...` : `Tool ${toolName} rejected by user`,
-                  toolExecution,
+                // Update the existing tool execution message with approval result
+                setMessages(prev => {
+                  return prev.map(msg => {
+                    if (msg.toolExecution?.id === currentExecutionIdRef.current && msg.role === 'tool_execution') {
+                      const messageContent = approvalResult.approved 
+                        ? `Executing ${toolName}...${approvalResult.autoApproveSession ? ' (Auto-approval enabled for session)' : ''}` 
+                        : `Tool ${toolName} rejected by user`;
+                      
+                      return { 
+                        ...msg, 
+                        content: messageContent,
+                        toolExecution: { 
+                          ...msg.toolExecution!, 
+                          status: approvalResult.approved ? 'approved' : 'canceled'
+                        }
+                      };
+                    }
+                    return msg;
+                  });
                 });
                 
-                // No need to update currentToolExecution since we use the ref for matching
-                
-                resolve(approved);
+                if (approvalResult.autoApproveSession) {
+                  setSessionAutoApprove(true);
+                }
+                resolve(approvalResult);
               }
             });
           });
@@ -233,9 +238,9 @@ export function useAgent(
     }
   }, [agent, isProcessing, addMessage, updateMessage, onStartRequest, onAddTokens, onPauseRequest, onResumeRequest, onCompleteRequest]);
 
-  const approveToolExecution = useCallback((approved: boolean) => {
+  const approveToolExecution = useCallback((approved: boolean, autoApproveSession?: boolean) => {
     if (pendingApproval) {
-      pendingApproval.resolve(approved);
+      pendingApproval.resolve({ approved, autoApproveSession });
       setPendingApproval(null);
     }
   }, [pendingApproval]);
@@ -244,9 +249,16 @@ export function useAgent(
     agent.setApiKey(apiKey);
   }, [agent]);
 
+  const toggleAutoApprove = useCallback(() => {
+    const newAutoApproveState = !sessionAutoApprove;
+    setSessionAutoApprove(newAutoApproveState);
+    agent.setSessionAutoApprove(newAutoApproveState);
+  }, [sessionAutoApprove, agent]);
+
   const clearHistory = useCallback(() => {
     setMessages([]);
     setUserMessageHistory([]);
+    // Don't reset sessionAutoApprove - it should persist across /clear
     agent.clearHistory();
   }, [agent]);
 
@@ -256,10 +268,12 @@ export function useAgent(
     isProcessing,
     currentToolExecution,
     pendingApproval,
+    sessionAutoApprove,
     sendMessage,
     approveToolExecution,
     addMessage,
     setApiKey,
     clearHistory,
+    toggleAutoApprove,
   };
 }

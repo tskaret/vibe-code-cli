@@ -6,7 +6,7 @@ import * as path from 'path';
 import { displayTree } from '../utils/file-ops.js';
 import { formatToolParams, executeTool } from '../tools/builtin/tools.js';
 import { validateReadBeforeEdit, getReadBeforeEditError } from '../tools/validators.js';
-import { ALL_TOOLS, DANGEROUS_TOOLS } from '../tools/builtin/tool-schemas.js';
+import { ALL_TOOLS, DANGEROUS_TOOLS, APPROVAL_REQUIRED_TOOLS } from '../tools/builtin/tool-schemas.js';
 import { ConfigManager } from '../utils/local-settings.js';
 
 interface Message {
@@ -25,11 +25,12 @@ export class Agent {
   private noContext: boolean;
   private directory: string;
   private autoWrite: boolean;
+  private sessionAutoApprove: boolean = false;
   private systemMessage: string;
   private configManager: ConfigManager;
   private onToolStart?: (name: string, args: Record<string, any>) => void;
   private onToolEnd?: (name: string, result: any) => void;
-  private onToolApproval?: (toolName: string, toolArgs: Record<string, any>) => Promise<boolean>;
+  private onToolApproval?: (toolName: string, toolArgs: Record<string, any>) => Promise<{ approved: boolean; autoApproveSession?: boolean }>;
   private onThinkingText?: (content: string) => void;
   private onFinalMessage?: (content: string) => void;
 
@@ -149,7 +150,7 @@ When asked about your identity, you should identify yourself as a coding assista
   public setToolCallbacks(callbacks: {
     onToolStart?: (name: string, args: Record<string, any>) => void;
     onToolEnd?: (name: string, result: any) => void;
-    onToolApproval?: (toolName: string, toolArgs: Record<string, any>) => Promise<boolean>;
+    onToolApproval?: (toolName: string, toolArgs: Record<string, any>) => Promise<{ approved: boolean; autoApproveSession?: boolean }>;
     onThinkingText?: (content: string) => void;
     onFinalMessage?: (content: string) => void;
   }) {
@@ -197,6 +198,10 @@ When asked about your identity, you should identify yourself as a coding assista
 
   public getCurrentModel(): string {
     return this.model;
+  }
+
+  public setSessionAutoApprove(enabled: boolean): void {
+    this.sessionAutoApprove = enabled;
   }
 
   async chat(userInput: string): Promise<void> {
@@ -355,16 +360,29 @@ When asked about your identity, you should identify yourself as a coding assista
       }
 
       // Check if tool needs approval (only after validation passes)
-      if (DANGEROUS_TOOLS.includes(toolName) && !this.autoWrite) {
-        let approved: boolean;
+      const isDangerous = DANGEROUS_TOOLS.includes(toolName);
+      const requiresApproval = APPROVAL_REQUIRED_TOOLS.includes(toolName);
+      const needsApproval = (isDangerous || requiresApproval) && !this.autoWrite;
+      
+      // For APPROVAL_REQUIRED_TOOLS, check if session auto-approval is enabled
+      const canAutoApprove = requiresApproval && !isDangerous && this.sessionAutoApprove;
+            
+      if (needsApproval && !canAutoApprove) {
+        let approvalResult: { approved: boolean; autoApproveSession?: boolean };
         
         if (this.onToolApproval) {
-          approved = await this.onToolApproval(toolName, toolArgs);
+          approvalResult = await this.onToolApproval(toolName, toolArgs);
         } else {
-          approved = await this.getToolApproval(toolName, toolArgs);
+          const approved = await this.getToolApproval(toolName, toolArgs);
+          approvalResult = { approved };
         }
         
-        if (!approved) {
+        // Enable session auto-approval if requested (only for APPROVAL_REQUIRED_TOOLS)
+        if (approvalResult.autoApproveSession && requiresApproval && !isDangerous) {
+          this.sessionAutoApprove = true;
+        }
+        
+        if (!approvalResult.approved) {
           const result = { error: 'Tool execution canceled by user', success: false, userRejected: true };
           if (this.onToolEnd) {
             this.onToolEnd(toolName, result);
@@ -372,7 +390,7 @@ When asked about your identity, you should identify yourself as a coding assista
           return result;
         }
       }
-
+    
       // Execute tool
       const result = await executeTool(toolName, toolArgs);
 

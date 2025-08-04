@@ -20,7 +20,7 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
       case 'canceled':
         return '🚫';
       default:
-        return '❓';
+        return '?';
     }
   };
 
