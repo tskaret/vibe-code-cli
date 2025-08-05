@@ -1,8 +1,7 @@
-import React from 'react';
 import { Box, Text } from 'ink';
 import { ToolExecution } from '../../hooks/useAgent.js';
 import DiffPreview from './DiffPreview.js';
-import { formatToolParams } from '../../../tools/builtin/tools.js';
+import { formatToolParams } from '../../../tools/tools.js';
 
 interface ToolHistoryItemProps {
   execution: ToolExecution;

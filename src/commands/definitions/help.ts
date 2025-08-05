@@ -13,16 +13,15 @@ export const helpCommand: CommandDefinition = {
       content: `Available Commands:
 ${commandList}
 
-Command Navigation:
+Navigation:
+- Use arrow keys to navigate chat history
 - Type '/' to see available slash commands
 - Use arrow keys to navigate slash command suggestions
 - Press Enter to execute the selected command
 
-Chat Navigation:
-- Use arrow keys to navigate chat history
-
-General Commands:
-- exit, quit, bye - Exit the application
+Keyboard Shortcuts:
+- Esc - Clear input box / Interrupt processing / Reject tool approval
+- Shift+Tab - Toggle auto-approval for editing tools
 - Ctrl+C - Exit the application
 
 This is a highly customizable, lightweight, and open-source coding CLI powered by Groq. Ask for help with coding tasks, debugging issues, or explaining code.`

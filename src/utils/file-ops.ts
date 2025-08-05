@@ -1,14 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import chalk from 'chalk';
 import { IGNORE_PATTERNS } from './constants.js';
-
-interface ToolArgs {
-  start_line?: number;
-  end_line?: number;
-  new_content?: string;
-  content?: string;
-}
 
 /**
  * Write content to a file with safety checks

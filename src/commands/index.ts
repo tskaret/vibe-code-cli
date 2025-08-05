@@ -1,14 +1,16 @@
 import { CommandDefinition, CommandContext } from './base.js';
-import { helpCommand } from './builtin/help.js';
-import { loginCommand } from './builtin/login.js';
-import { modelCommand } from './builtin/model.js';
-import { clearCommand } from './builtin/clear.js';
+import { helpCommand } from './definitions/help.js';
+import { loginCommand } from './definitions/login.js';
+import { modelCommand } from './definitions/model.js';
+import { clearCommand } from './definitions/clear.js';
+import { reasoningCommand } from './definitions/reasoning.js';
 
 const builtinCommands: CommandDefinition[] = [
   helpCommand,
   loginCommand,
   modelCommand,
   clearCommand,
+  reasoningCommand,
 ];
 
 export function getAvailableCommands(): CommandDefinition[] {

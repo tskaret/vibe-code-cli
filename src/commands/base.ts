@@ -3,6 +3,8 @@ export interface CommandContext {
   clearHistory: () => void;
   setShowLogin: (show: boolean) => void;
   setShowModelSelector?: (show: boolean) => void;
+  toggleReasoning?: () => void;
+  showReasoning?: boolean;
 }
 
 export interface CommandDefinition {

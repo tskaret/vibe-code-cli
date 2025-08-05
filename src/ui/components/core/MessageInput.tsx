@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { getCommandNames } from '../../../commands/index.js';
 import SlashCommandSuggestions from '../input-overlays/SlashCommandSuggestions.js';
@@ -15,7 +15,7 @@ export default function MessageInput({
   value, 
   onChange, 
   onSubmit, 
-  placeholder = "Type your message... (Ctrl+C to exit)",
+  placeholder = "... (Esc to clear, Ctrl+C to exit)",
   userMessageHistory = []
 }: MessageInputProps) {
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
@@ -151,7 +151,10 @@ export default function MessageInput({
         <Text color="cyan" bold>{'>'} </Text>
         <Box flexGrow={1}>
           {isPlaceholder ? (
-            <Text color="gray">{displayValue}</Text>
+            <Text color="gray">
+              <Text backgroundColor="cyan" color="white"> </Text>
+              {placeholder}
+            </Text>
           ) : (
             <Text color="gray">
               {value.slice(0, cursorPosition)}
