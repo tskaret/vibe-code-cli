@@ -8,13 +8,13 @@ interface ModelSelectorProps {
 }
 
 const AVAILABLE_MODELS = [
-  { id: 'moonshotai/kimi-k2-instruct', name: 'Kimi K2 Instruct', description: 'Best overall performance' },
+  { id: 'moonshotai/kimi-k2-instruct', name: 'Kimi K2 Instruct', description: 'Most capable model' },
+  { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: 'Fast, capable, and cheap model' },
+  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: 'Fastest and cheapest model' },
   { id: 'qwen/qwen3-32b', name: 'Qwen 3 32B', description: '' },
-  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 (Distill)', description: '' },
   { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick', description: '' },
   { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', description: '' },
-  { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: '' },
-  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: '' },
+
 ];
 
 export default function ModelSelector({ onSubmit, onCancel, currentModel }: ModelSelectorProps) {
@@ -59,6 +59,12 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
       <Box marginBottom={1}>
         <Text color="gray" dimColor>
           Choose a model for your conversation. The chat will be cleared when you switch models.
+        </Text>
+      </Box>
+
+      <Box marginBottom={1}>
+        <Text color="gray" dimColor>
+          Visit https://groq.com/pricing for more information.
         </Text>
       </Box>
 

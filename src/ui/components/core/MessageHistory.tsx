@@ -45,7 +45,7 @@ export default function MessageHistory({ messages, showReasoning = true }: Messa
           <Box key={message.id} marginBottom={1} flexDirection="column">
             {/* Render reasoning if present and showReasoning is enabled */}
             {message.reasoning && showReasoning && (
-              <Box>
+              <Box marginBottom={1}>
                 <Text italic dimColor>
                   {message.reasoning}
                 </Text>
