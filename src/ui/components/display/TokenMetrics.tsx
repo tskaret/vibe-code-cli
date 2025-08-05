@@ -7,7 +7,7 @@ interface TokenMetricsProps {
   startTime: Date | null;
   endTime: Date | null;
   pausedTime: number;
-  tokenCount: number;
+  completionTokens: number;
 }
 
 export default function TokenMetrics({ 
@@ -16,7 +16,7 @@ export default function TokenMetrics({
   startTime, 
   endTime,
   pausedTime,
-  tokenCount 
+  completionTokens
 }: TokenMetricsProps) {
   const [displayTime, setDisplayTime] = useState('0.0s');
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
@@ -88,7 +88,7 @@ export default function TokenMetrics({
   };
 
   // Don't show component if inactive and no tokens counted
-  if (!isActive && tokenCount === 0) {
+  if (!isActive && completionTokens === 0) {
     return null;
   }
 
@@ -96,7 +96,7 @@ export default function TokenMetrics({
     <Box paddingX={1}>
       <Box gap={2}>
         <Text color="cyan">{getElapsedTime()}</Text>
-        <Text color="green">{tokenCount} tokens</Text>
+        <Text color="green">{completionTokens} tokens</Text>
         {(isActive || isPaused) && (
             <Text color={isPaused ? 'yellow' : 'blue'}>
               {getStatusText()}
