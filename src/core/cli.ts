@@ -11,7 +11,8 @@ const program = new Command();
 async function startChat(
   temperature: number,
   system: string | null,
-  initialPrompt?: string
+  initialPrompt?: string,
+  debug?: boolean
 ): Promise<void> {
   console.log(chalk.hex('#FF4500')(`                             
   ██████    ██████   ██████   ██████
@@ -39,7 +40,8 @@ async function startChat(
     const agent = await Agent.create(
       defaultModel,
       temperature,
-      system
+      system,
+      debug
     );
 
     render(React.createElement(App, { agent, initialPrompt }));
@@ -57,11 +59,13 @@ program
 
   .option('-t, --temperature <temperature>', 'Temperature for generation', parseFloat, 1.0)
   .option('-s, --system <message>', 'Custom system message')
+  .option('-d, --debug', 'Enable debug logging to debug-agent.log in current directory')
   .action(async (prompt, options) => {
     await startChat(
       options.temperature,
       options.system || null,
-      prompt
+      prompt,
+      options.debug
     );
   });
 

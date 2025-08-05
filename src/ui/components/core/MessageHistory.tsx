@@ -6,9 +6,10 @@ import { parseMarkdown, MarkdownElement, parseInlineElements } from '../../../ut
 
 interface MessageHistoryProps {
   messages: ChatMessage[];
+  showReasoning?: boolean;
 }
 
-export default function MessageHistory({ messages }: MessageHistoryProps) {
+export default function MessageHistory({ messages, showReasoning = true }: MessageHistoryProps) {
   const scrollRef = useRef<any>(null);
 
   // Auto-scroll to bottom when new messages are added
@@ -42,7 +43,16 @@ export default function MessageHistory({ messages }: MessageHistoryProps) {
         const markdownElements = parseMarkdown(message.content);
         return (
           <Box key={message.id} marginBottom={1} flexDirection="column">
-            {markdownElements.map((element, index) => {
+            {/* Render reasoning if present and showReasoning is enabled */}
+            {message.reasoning && showReasoning && (
+              <Box>
+                <Text italic dimColor>
+                  {message.reasoning}
+                </Text>
+              </Box>
+            )}
+            {/* Render content only if it exists */}
+            {message.content && markdownElements.map((element, index) => {
               switch (element.type) {
                 case 'code-block':
                   return (

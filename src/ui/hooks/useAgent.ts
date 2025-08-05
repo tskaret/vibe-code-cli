@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
 import { Agent } from '../../core/agent.js';
-import { DANGEROUS_TOOLS, APPROVAL_REQUIRED_TOOLS } from '../../tools/builtin/tool-schemas.js';
+import { DANGEROUS_TOOLS, APPROVAL_REQUIRED_TOOLS } from '../../tools/tool-schemas.js';
 
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool' | 'tool_execution';
   content: string;
+  reasoning?: string;
   timestamp: Date;
   toolExecution?: ToolExecution;
 }
@@ -22,7 +23,7 @@ export interface ToolExecution {
 export function useAgent(
   agent: Agent, 
   onStartRequest?: () => void,
-  onAddTokens?: (content: string) => void, 
+  onAddApiTokens?: (usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) => void, 
   onPauseRequest?: () => void,
   onResumeRequest?: () => void,
   onCompleteRequest?: () => void
@@ -32,6 +33,7 @@ export function useAgent(
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentToolExecution, setCurrentToolExecution] = useState<ToolExecution | null>(null);
   const [sessionAutoApprove, setSessionAutoApprove] = useState(false);
+  const [showReasoning, setShowReasoning] = useState(true);
   const currentExecutionIdRef = useRef<string | null>(null);
   const [pendingApproval, setPendingApproval] = useState<{
     toolName: string;
@@ -70,45 +72,32 @@ export function useAgent(
     // Add user message to history
     setUserMessageHistory(prev => [...prev, userInput]);
 
-    // Add user message and count its tokens
+    // Add user message
     addMessage({
       role: 'user',
       content: userInput,
     });
-    
-    // Count tokens from user input
-    if (onAddTokens) {
-      onAddTokens(userInput);
-    }
 
     setIsProcessing(true);
 
     try {
       // Set up tool execution callbacks
       agent.setToolCallbacks({
-        onThinkingText: (content: string) => {
+        onThinkingText: (content: string, reasoning?: string) => {
           // Add thinking text as assistant message when model uses tools
           addMessage({
             role: 'assistant',
             content: content,
+            reasoning: reasoning,
           });
-          
-          // Count tokens from thinking text
-          if (onAddTokens) {
-            onAddTokens(content);
-          }
         },
-        onFinalMessage: (content: string) => {
+        onFinalMessage: (content: string, reasoning?: string) => {
           // Add final assistant message when no tools are used
           addMessage({
             role: 'assistant',
             content: content,
+            reasoning: reasoning,
           });
-          
-          // Count tokens from final message
-          if (onAddTokens) {
-            onAddTokens(content);
-          }
         },
         onToolStart: (name: string, args: Record<string, any>) => {
           const toolExecution: ToolExecution = {
@@ -122,12 +111,6 @@ export function useAgent(
           // Store the ID in ref for reliable matching across callbacks
           currentExecutionIdRef.current = toolExecution.id;
           
-          // Count tokens from tool arguments
-          if (onAddTokens) {
-            const argsText = JSON.stringify(args);
-            onAddTokens(argsText);
-          }
-          
           // Always add tool execution message; approval is handled separately
           addMessage({
             role: 'tool_execution',
@@ -139,12 +122,6 @@ export function useAgent(
         },
         onToolEnd: (name: string, result: any) => {
           const executionId = currentExecutionIdRef.current;
-          
-          // Count tokens from tool result
-          if (onAddTokens && result) {
-            const resultText = typeof result === 'string' ? result : JSON.stringify(result);
-            onAddTokens(resultText);
-          }
           
           // Only update the specific tool execution that just finished
           setMessages(prev => {
@@ -174,6 +151,12 @@ export function useAgent(
         });
           setCurrentToolExecution(null);
           currentExecutionIdRef.current = null;
+        },
+        onApiUsage: (usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) => {
+          // Pass API usage data to token metrics
+          if (onAddApiTokens) {
+            onAddApiTokens(usage);
+          }
         },
         onToolApproval: async (toolName: string, toolArgs: Record<string, any>) => {          
           // Pause metrics while waiting for approval
@@ -247,9 +230,40 @@ export function useAgent(
       await agent.chat(userInput);
 
     } catch (error) {
+      // Don't show abort errors - user interruption message is already shown
+      if (error instanceof Error && (
+        error.message.includes('Request was aborted') ||
+        error.message.includes('The operation was aborted') ||
+        error.name === 'AbortError'
+      )) {
+        // Skip showing abort errors since user already sees "User has interrupted the request"
+        return;
+      }
+      
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error instanceof Error) {
+        // Check if it's an API error with more details
+        if ('status' in error && 'error' in error) {
+          const apiError = error as any;
+          if (apiError.error?.error?.message) {
+            errorMessage = `API Error (${apiError.status}): ${apiError.error.error.message}`;
+            if (apiError.error.error.code) {
+              errorMessage += ` (Code: ${apiError.error.error.code})`;
+            }
+          } else {
+            errorMessage = `API Error (${apiError.status}): ${error.message}`;
+          }
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      } else {
+        errorMessage = `Error: ${String(error)}`;
+      }
+      
       addMessage({
         role: 'system',
-        content: `Error: ${error}`,
+        content: errorMessage,
       });
     } finally {
       setIsProcessing(false);
@@ -260,7 +274,7 @@ export function useAgent(
         onCompleteRequest();
       }
     }
-  }, [agent, isProcessing, addMessage, updateMessage, onStartRequest, onAddTokens, onPauseRequest, onResumeRequest, onCompleteRequest]);
+  }, [agent, isProcessing, addMessage, updateMessage, onStartRequest, onAddApiTokens, onPauseRequest, onResumeRequest, onCompleteRequest]);
 
   const approveToolExecution = useCallback((approved: boolean, autoApproveSession?: boolean) => {
     if (pendingApproval) {
@@ -293,6 +307,22 @@ export function useAgent(
     agent.clearHistory();
   }, [agent]);
 
+  const interruptRequest = useCallback(() => {
+    agent.interrupt();
+    setIsProcessing(false);
+    setCurrentToolExecution(null);
+    
+    // Add the interruption message to the UI
+    addMessage({
+      role: 'system',
+      content: 'User has interrupted the request.',
+    });
+  }, [agent, addMessage]);
+
+  const toggleReasoning = useCallback(() => {
+    setShowReasoning(prev => !prev);
+  }, []);
+
   return {
     messages,
     userMessageHistory,
@@ -301,6 +331,7 @@ export function useAgent(
     pendingApproval,
     pendingMaxIterations,
     sessionAutoApprove,
+    showReasoning,
     sendMessage,
     approveToolExecution,
     respondToMaxIterations,
@@ -308,5 +339,7 @@ export function useAgent(
     setApiKey,
     clearHistory,
     toggleAutoApprove,
+    toggleReasoning,
+    interruptRequest,
   };
 }

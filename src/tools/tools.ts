@@ -1,10 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import chalk from 'chalk';
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, createDirectory, displayTree, shouldIgnore } from '../../utils/file-ops.js';
-import { setReadFilesTracker } from '../validators.js';
+import { writeFile, createDirectory, displayTree } from '../utils/file-ops.js';
+import { setReadFilesTracker } from './validators.js';
 
 const execAsync = promisify(exec);
 

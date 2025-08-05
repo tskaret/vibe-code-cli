@@ -18,14 +18,14 @@ interface ChatProps {
 
 export default function Chat({ agent }: ChatProps) {
   const {
-    tokenCount,
+    completionTokens,
     startTime,
     endTime,
     pausedTime,
     isPaused,
     isActive,
     startRequest,
-    addTokens,
+    addApiTokens,
     pauseMetrics,
     resumeMetrics,
     completeRequest,
@@ -35,7 +35,7 @@ export default function Chat({ agent }: ChatProps) {
   const agentHook = useAgent(
     agent, 
     startRequest,      // Start tracking on new request
-    addTokens,         // Add tokens throughout the request
+    addApiTokens,      // Add API usage tokens throughout the request
     pauseMetrics,      // Pause during approval
     resumeMetrics,     // Resume after approval
     completeRequest    // Complete when agent is done
@@ -49,6 +49,7 @@ export default function Chat({ agent }: ChatProps) {
     pendingApproval,
     pendingMaxIterations,
     sessionAutoApprove,
+    showReasoning,
     sendMessage,
     approveToolExecution,
     respondToMaxIterations,
@@ -56,6 +57,8 @@ export default function Chat({ agent }: ChatProps) {
     setApiKey,
     clearHistory,
     toggleAutoApprove,
+    toggleReasoning,
+    interruptRequest,
   } = agentHook;
 
   const { exit } = useApp();
@@ -72,6 +75,20 @@ export default function Chat({ agent }: ChatProps) {
     if (key.shift && key.tab) {
       toggleAutoApprove();
     }
+    if (key.escape) {
+      // If waiting for tool approval, reject the tool
+      if (pendingApproval) {
+        handleApproval(false);
+      }
+      // If model is actively processing (but not waiting for approval or executing tools after approval)
+      else if (isProcessing && !currentToolExecution) {
+        interruptRequest();
+      }
+      // If user is typing and nothing else is happening, clear the input
+      else if (showInput && inputValue.trim()) {
+        setInputValue('');
+      }
+    }
   });
 
   // Hide input when processing, waiting for approval, or showing login/model selector
@@ -84,12 +101,6 @@ export default function Chat({ agent }: ChatProps) {
     if (message.trim() && !isProcessing) {
       setInputValue('');
       
-      // Handle exit commands
-      if (['exit', 'quit', 'bye'].includes(message.toLowerCase())) {
-        exit();
-        return;
-      }
-      
       // Handle slash commands
       if (message.startsWith('/')) {
         handleSlashCommand(message, {
@@ -97,6 +108,8 @@ export default function Chat({ agent }: ChatProps) {
           clearHistory,
           setShowLogin,
           setShowModelSelector,
+          toggleReasoning,
+          showReasoning,
         });
         return;
       }
@@ -152,7 +165,7 @@ export default function Chat({ agent }: ChatProps) {
     <Box flexDirection="column" height="100%">
       {/* Chat messages area */}
       <Box flexGrow={1} flexDirection="column" paddingX={1}>
-        <MessageHistory messages={messages} />
+        <MessageHistory messages={messages} showReasoning={showReasoning} />
       </Box>
 
       {/* Token metrics */}
@@ -162,7 +175,7 @@ export default function Chat({ agent }: ChatProps) {
         startTime={startTime}
         endTime={endTime}
         pausedTime={pausedTime}
-        tokenCount={tokenCount}
+        completionTokens={completionTokens}
       />
 
       {/* Input area */}
@@ -197,7 +210,7 @@ export default function Chat({ agent }: ChatProps) {
             value={inputValue}
             onChange={setInputValue}
             onSubmit={handleSendMessage}
-            placeholder="Type your message... (Ctrl+C to exit)"
+            placeholder="... (Esc to clear, Ctrl+C to exit)"
             userMessageHistory={userMessageHistory}
           />
         ) : (

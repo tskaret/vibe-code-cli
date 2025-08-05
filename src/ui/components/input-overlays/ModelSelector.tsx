@@ -13,6 +13,8 @@ const AVAILABLE_MODELS = [
   { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 (Distill)', description: '' },
   { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick', description: '' },
   { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', description: '' },
+  { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: '' },
+  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: '' },
 ];
 
 export default function ModelSelector({ onSubmit, onCancel, currentModel }: ModelSelectorProps) {

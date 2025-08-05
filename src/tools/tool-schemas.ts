@@ -22,13 +22,13 @@ export const READ_FILE_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'read_file',
-    description: 'Read the contents of a file, optionally specifying line range',
+    description: 'Read file contents with optional line range. REQUIRED before edit_file. Use to check if files exist and examine current code before making changes. Example: {"file_path": "src/app.js", "start_line": 10, "end_line": 20}',
     parameters: {
       type: 'object',
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path to the file to read (relative or absolute)'
+          description: 'Path to file (use "file_path", not "path"). Can be relative or absolute'
         },
         start_line: {
           type: 'integer',
@@ -50,27 +50,27 @@ export const CREATE_FILE_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'create_file',
-    description: 'Create a new file or directory with specified content',
+    description: 'Create NEW files or directories that DO NOT EXIST. CRITICAL: Always check if file exists first using list_files or read_file before creating. If file exists, use edit_file instead. Set overwrite=true only if you explicitly need to replace existing content. Example: {"file_path": "src/utils/new-helper.js", "content": "function helper() { return true; }", "file_type": "file"}',
     parameters: {
       type: 'object',
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path for the new file or directory'
+          description: 'Path for new file/directory (use "file_path", not "path")'
         },
         content: {
           type: 'string',
-          description: 'Content to write to the file (empty string for directories)'
+          description: 'File content (use empty string "" for directories)'
         },
         file_type: {
           type: 'string',
           enum: ['file', 'directory'],
-          description: 'Whether to create a file or directory',
+          description: 'Create file or directory',
           default: 'file'
         },
         overwrite: {
           type: 'boolean',
-          description: 'Whether to overwrite if file exists',
+          description: 'Overwrite existing file',
           default: false
         }
       },
@@ -83,25 +83,25 @@ export const EDIT_FILE_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'edit_file',
-    description: 'Edit a file by replacing exact text strings. Must read file first.',
+    description: 'Modify EXISTING files by exact text replacement. Use this for files that already exist. MANDATORY: Always read_file first to see current content before editing. Text must match exactly including whitespace. Example: {"file_path": "src/app.js", "old_text": "const x = 1;", "new_text": "const x = 2;"}',
     parameters: {
       type: 'object',
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path to the file to edit'
+          description: 'Path to file to edit (use "file_path", not "path")'
         },
         old_text: {
           type: 'string',
-          description: 'Exact text to find and replace (must match exactly including whitespace)'
+          description: 'Exact text to replace (must match perfectly including spaces/newlines)'
         },
         new_text: {
           type: 'string',
-          description: 'New text to replace the old text with'
+          description: 'Replacement text'
         },
         replace_all: {
           type: 'boolean',
-          description: 'Whether to replace all occurrences (default: false - replace first match only)',
+          description: 'Replace all occurrences (default: false)',
           default: false
         }
       },
@@ -114,17 +114,17 @@ export const DELETE_FILE_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'delete_file',
-    description: 'Delete a file or directory',
+    description: 'Remove files or directories. Use with caution. Example: {"file_path": "temp/old_file.txt"} or {"file_path": "temp_dir", "recursive": true}',
     parameters: {
       type: 'object',
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path to the file or directory to delete'
+          description: 'Path to file/directory to delete (use "file_path", not "path")'
         },
         recursive: {
           type: 'boolean',
-          description: 'Whether to delete directories recursively',
+          description: 'Delete directories and their contents',
           default: false
         }
       },
@@ -139,26 +139,26 @@ export const EXECUTE_COMMAND_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'execute_command',
-    description: 'Execute a shell command or run code',
+    description: 'Run shell commands, scripts, or code. Use for testing, building, or running programs. Example: {"command": "npm test", "command_type": "bash"}',
     parameters: {
       type: 'object',
       properties: {
         command: {
           type: 'string',
-          description: 'The command to execute'
+          description: 'Shell command to execute (e.g., "ls -la", "python script.py")'
         },
         command_type: {
           type: 'string',
           enum: ['bash', 'python', 'setup', 'run'],
-          description: 'Type of command - setup commands auto-execute, run commands require approval'
+          description: 'Command type: bash (shell), python (script), setup (auto-run), run (needs approval)'
         },
         working_directory: {
           type: 'string',
-          description: 'Working directory to execute command in (optional)'
+          description: 'Directory to run command in (optional)'
         },
         timeout: {
           type: 'integer',
-          description: 'Timeout in seconds (optional)',
+          description: 'Max execution time in seconds (1-300)',
           minimum: 1,
           maximum: 300
         }
@@ -174,67 +174,67 @@ export const SEARCH_FILES_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'search_files',
-    description: 'Search for text patterns in files with advanced filtering and matching options',
+    description: 'Find text patterns in files across the codebase. Perfect for locating functions, classes, or specific code. Example: {"pattern": "function handleClick", "file_pattern": "*.js", "context_lines": 3}',
     parameters: {
       type: 'object',
       properties: {
         pattern: {
           type: 'string',
-          description: 'Text pattern to search for'
+          description: 'Text to search for (can be function names, classes, strings, etc.)'
         },
         file_pattern: {
           type: 'string',
-          description: 'File pattern to limit search (e.g., \'*.py\', \'*.js\')',
+          description: 'File pattern filter (e.g., "*.py", "*.js", "src/*.ts")',
           default: '*'
         },
         directory: {
           type: 'string',
-          description: 'Directory to search in',
+          description: 'Directory to search in (default: current)',
           default: '.'
         },
         case_sensitive: {
           type: 'boolean',
-          description: 'Whether search should be case sensitive',
+          description: 'Case-sensitive search',
           default: false
         },
         pattern_type: {
           type: 'string',
           enum: ['substring', 'regex', 'exact', 'fuzzy'],
-          description: 'Type of pattern matching to use',
+          description: 'Match type: substring (partial), regex (patterns), exact (whole), fuzzy (similar)',
           default: 'substring'
         },
         file_types: {
           type: 'array',
           items: { type: 'string' },
-          description: 'File extensions to include (e.g., [\'py\', \'js\', \'ts\'])'
+          description: 'File extensions to include (["py", "js", "ts"])'
         },
         exclude_dirs: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Directory names to exclude (e.g., [\'node_modules\', \'.git\'])'
+          description: 'Directories to skip (["node_modules", ".git", "dist"])'
         },
         exclude_files: {
           type: 'array',
           items: { type: 'string' },
-          description: 'File patterns to exclude (e.g., [\'*.pyc\', \'*.log\'])'
+          description: 'File patterns to skip (["*.min.js", "*.log"])'
         },
         max_results: {
           type: 'integer',
-          description: 'Maximum number of results to return',
+          description: 'Maximum results to return (1-1000)',
           default: 100,
           minimum: 1,
           maximum: 1000
         },
         context_lines: {
           type: 'integer',
-          description: 'Number of lines to show before and after each match',
+          description: 'Lines of context around matches (0-10)',
           default: 0,
           minimum: 0,
           maximum: 10
         },
         group_by_file: {
           type: 'boolean',
-          description: 'Whether to group results by file',
+          description: 'Group results by filename',
           default: false
         }
       },
@@ -247,28 +247,28 @@ export const LIST_FILES_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'list_files',
-    description: 'List files and directories in a path',
+    description: 'Browse directory contents and file structure. Use to explore project layout and CHECK IF FILES EXIST before deciding between create_file vs edit_file. Example: {"directory": "src", "pattern": "*.js", "recursive": true}',
     parameters: {
       type: 'object',
       properties: {
         directory: {
           type: 'string',
-          description: 'Directory to list',
+          description: 'Directory path to list (default: current directory)',
           default: '.'
         },
         pattern: {
           type: 'string',
-          description: 'File pattern to filter by (e.g., \'*.py\')',
+          description: 'File pattern filter ("*.py", "test_*", etc.)',
           default: '*'
         },
         recursive: {
           type: 'boolean',
-          description: 'Whether to list files recursively',
+          description: 'List subdirectories recursively',
           default: false
         },
         show_hidden: {
           type: 'boolean',
-          description: 'Whether to show hidden files',
+          description: 'Include hidden files (.gitignore, .env, etc.)',
           default: false
         }
       },
@@ -284,32 +284,32 @@ export const CREATE_TASKS_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'create_tasks',
-    description: 'Create a task list of subtasks to complete the user\'s request',
+    description: 'Break down complex requests into organized task lists. Use for multi-step projects. Example: {"user_query": "Build login system", "tasks": [{"id": "1", "description": "Create user model", "status": "pending"}]}',
     parameters: {
       type: 'object',
       properties: {
         user_query: {
           type: 'string',
-          description: 'The original user request or query'
+          description: 'Original user request being broken down'
         },
         tasks: {
           type: 'array',
-          description: 'List of subtasks to complete the request',
+          description: 'List of actionable subtasks',
           items: {
             type: 'object',
             properties: {
               id: {
                 type: 'string',
-                description: 'Unique identifier for the task'
+                description: 'Unique task identifier string (e.g., "1", "2", "3")'
               },
               description: {
                 type: 'string',
-                description: 'Description of the task to be completed'
+                description: 'Clear, actionable task description'
               },
               status: {
                 type: 'string',
                 enum: ['pending', 'in_progress', 'completed'],
-                description: 'Current status of the task',
+                description: 'Task status: pending, in_progress, or completed',
                 default: 'pending'
               }
             },
@@ -326,28 +326,28 @@ export const UPDATE_TASKS_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'update_tasks',
-    description: 'Update the status of one or more tasks in the task list',
+    description: 'Update task progress and status. Use to mark tasks as started or completed. Example: {"task_updates": [{"id": "1", "status": "completed", "notes": "Successfully implemented"}]}',
     parameters: {
       type: 'object',
       properties: {
         task_updates: {
           type: 'array',
-          description: 'List of task updates',
+          description: 'Array of status updates for specific tasks',
           items: {
             type: 'object',
             properties: {
               id: {
                 type: 'string',
-                description: 'ID of the task to update'
+                description: 'ID string of task to update (must match existing task ID)'
               },
               status: {
                 type: 'string',
                 enum: ['pending', 'in_progress', 'completed'],
-                description: 'New status for the task'
+                description: 'New status: pending, in_progress, or completed'
               },
               notes: {
                 type: 'string',
-                description: 'Optional notes about the task update'
+                description: 'Optional progress notes or completion details'
               }
             },
             required: ['id', 'status']
@@ -359,35 +359,18 @@ export const UPDATE_TASKS_SCHEMA: ToolSchema = {
   }
 };
 
-// Tool Collections
-
-// Core file operations; always available
-export const CORE_TOOLS = [
+// All tools combined
+export const ALL_TOOL_SCHEMAS = [
   READ_FILE_SCHEMA,
   CREATE_FILE_SCHEMA,
   EDIT_FILE_SCHEMA,
-  DELETE_FILE_SCHEMA
-];
-
-// Information gathering tools
-export const INFO_TOOLS = [
+  DELETE_FILE_SCHEMA,
   SEARCH_FILES_SCHEMA,
-  LIST_FILES_SCHEMA
-];
-
-// Task management tools
-export const TASK_TOOLS = [
+  LIST_FILES_SCHEMA,
   CREATE_TASKS_SCHEMA,
-  UPDATE_TASKS_SCHEMA
-];
-
-// Execution tools
-export const EXECUTION_TOOLS = [
+  UPDATE_TASKS_SCHEMA,
   EXECUTE_COMMAND_SCHEMA
 ];
-
-// All tools combined
-export const ALL_TOOLS = [...CORE_TOOLS, ...INFO_TOOLS, ...TASK_TOOLS, ...EXECUTION_TOOLS];
 
 // Safe tools that can be auto-executed without approval
 export const SAFE_TOOLS = [
