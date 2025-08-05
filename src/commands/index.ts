@@ -5,7 +5,7 @@ import { modelCommand } from './definitions/model.js';
 import { clearCommand } from './definitions/clear.js';
 import { reasoningCommand } from './definitions/reasoning.js';
 
-const builtinCommands: CommandDefinition[] = [
+const availableCommands: CommandDefinition[] = [
   helpCommand,
   loginCommand,
   modelCommand,
@@ -14,7 +14,7 @@ const builtinCommands: CommandDefinition[] = [
 ];
 
 export function getAvailableCommands(): CommandDefinition[] {
-  return [...builtinCommands];
+  return [...availableCommands];
 }
 
 export function getCommandNames(): string[] {

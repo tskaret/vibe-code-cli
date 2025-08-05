@@ -104,24 +104,117 @@ export GROQ_API_KEY=your_api_key_here
 
 ## Development
 
-### Project Structure
-
-...
+### Testing Locally
+```bash
+# Run this in the background during development to automatically apply any changes to the source code
+npm run dev  
+```
 
 ### Available Scripts
-
 ```bash
 npm run build      # Build TypeScript to dist/
 npm run dev        # Build in watch mode
 ```
 
-### Testing Locally
+### Project Structure
 
-```bash
-npm run build
-npm link
-npm run dev
 ```
+groq-code-cli/
+├── src/
+│   ├── commands/           
+│   │   ├── definitions/        # Individual command implementations
+│   │   │   ├── clear.ts        # Clear chat history command
+│   │   │   ├── help.ts         # Help command
+│   │   │   ├── login.ts        # Authentication command
+│   │   │   ├── model.ts        # Model selection command
+│   │   │   └── reasoning.ts    # Reasoning toggle command
+│   │   ├── base.ts             # Base command interface
+│   │   └── index.ts            # Command exports
+│   ├── core/               
+│   │   ├── agent.ts            # AI agent implementation
+│   │   └── cli.ts              # CLI entry point and setup
+│   ├── tools/              
+│   │   ├── tool-schemas.ts     # Tool schema definitions
+│   │   ├── tools.ts            # Tool implementations
+│   │   └── validators.ts       # Input validation utilities
+│   ├── ui/                 
+│   │   ├── App.tsx             # Main application component
+│   │   ├── components/     
+│   │   │   ├── core/           # Core chat TUI components
+│   │   │   ├── display/        # Auxiliary components for TUI display
+│   │   │   └── input-overlays/ # Input overlays and modals that occupy the MessageInput box
+│   │   └── hooks/          
+│   └── utils/              
+│       ├── constants.ts        # Application constants
+│       ├── file-ops.ts         # File system operations
+│       ├── local-settings.ts   # Local configuration management
+│       └── markdown.ts         # Markdown processing utilities
+├── docs/                   
+├── package.json    
+├── tsconfig.json        
+└── LICENSE          
+```
+
+**TL;DR:** Start with `src/core/cli.ts` (main entry point), `src/core/agent.ts`, and `src/ui/hooks/useAgent.ts` (bridge between TUI and the agent). Tools are in `src/tools/`, slash commands are in `src/commands/definitions/`, and customize the TUI in `src/ui/components/`.
+
+### Customization
+
+#### Adding New Tools
+
+Tools are AI-callable functions that extend the CLI's capabilities. To add a new tool:
+
+1. **Define the tool schema** in `src/tools/tool-schemas.ts`:
+```typescript
+export const YOUR_TOOL_SCHEMA: ToolSchema = {
+  type: 'function',
+  function: {
+    name: 'your_tool_name',
+    description: 'What your tool does',
+    parameters: {
+      type: 'object',
+      properties: {
+        param1: { type: 'string', description: 'Parameter description' }
+      },
+      required: ['param1']
+    }
+  }
+};
+```
+
+2. **Implement the tool function** in `src/tools/tools.ts`:
+```typescript
+export async function yourToolName(param1: string): Promise<ToolResult> {
+  // Your implementation here
+  return createToolResponse(true, result, 'Success message');
+}
+```
+
+3. **Register the tool** in the `TOOL_REGISTRY` object and `executeTool` switch statement in `src/tools/tools.ts`.
+
+4. **Add the schema** to `ALL_TOOL_SCHEMAS` array in `src/tools/tool-schemas.ts`.
+
+#### Adding New Slash Commands
+
+Slash commands provide direct user interactions. To add a new command:
+
+1. **Create command definition** in `src/commands/definitions/your-command.ts`:
+```typescript
+import { CommandDefinition, CommandContext } from '../base.js';
+
+export const yourCommand: CommandDefinition = {
+  command: 'yourcommand',
+  description: 'What your command does',
+  handler: ({ addMessage }: CommandContext) => {
+    // Your command logic here
+    addMessage({
+      role: 'system',
+      content: 'Command response'
+    });
+  }
+};
+```
+
+2. **Register the command** in `src/commands/index.ts` by importing it and adding to the `availableCommands` array.
 
 
 ## Contributing and Support

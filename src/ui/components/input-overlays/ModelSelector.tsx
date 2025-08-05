@@ -64,7 +64,7 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
 
       <Box marginBottom={1}>
         <Text color="gray" dimColor>
-          Visit https://groq.com/pricing for more information.
+          Visit <Text underline>https://groq.com/pricing</Text> for more information.
         </Text>
       </Box>
 
