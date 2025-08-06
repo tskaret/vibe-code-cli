@@ -217,6 +217,11 @@ export const yourCommand: CommandDefinition = {
 
 2. **Register the command** in `src/commands/index.ts` by importing it and adding to the `availableCommands` array.
 
+#### Changing Start Command
+To change the start command from `groq`, change `"groq"` in `"bin"` of `package.json` to your global command of choice.
+
+Re-run `npm run build` and `npm link`.
+
 
 ## Contributing and Support
 
