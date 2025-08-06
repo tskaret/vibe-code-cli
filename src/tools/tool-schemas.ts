@@ -28,7 +28,7 @@ export const READ_FILE_SCHEMA: ToolSchema = {
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path to file (use "file_path", not "path"). Can be relative or absolute'
+          description: 'Path to file. For files in current directory use just filename (e.g. "app.js"). For subdirectories use "src/app.js". DO NOT use absolute paths or leading slashes.'
         },
         start_line: {
           type: 'integer',
@@ -56,7 +56,7 @@ export const CREATE_FILE_SCHEMA: ToolSchema = {
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path for new file/directory (use "file_path", not "path")'
+          description: 'Path for new file/directory. For files in current directory use just filename (e.g. "app.js"). For subdirectories use "src/app.js". DO NOT use absolute paths or leading slashes.'
         },
         content: {
           type: 'string',
@@ -89,7 +89,7 @@ export const EDIT_FILE_SCHEMA: ToolSchema = {
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path to file to edit (use "file_path", not "path")'
+          description: 'Path to file to edit. For files in current directory use just filename (e.g. "app.js"). For subdirectories use "src/app.js". DO NOT use absolute paths or leading slashes.'
         },
         old_text: {
           type: 'string',
@@ -120,7 +120,7 @@ export const DELETE_FILE_SCHEMA: ToolSchema = {
       properties: {
         file_path: {
           type: 'string',
-          description: 'Path to file/directory to delete (use "file_path", not "path")'
+          description: 'Path to file/directory to delete. For files in current directory use just filename (e.g. "app.js"). For subdirectories use "src/app.js". DO NOT use absolute paths or leading slashes.'
         },
         recursive: {
           type: 'boolean',
@@ -139,13 +139,13 @@ export const EXECUTE_COMMAND_SCHEMA: ToolSchema = {
   type: 'function',
   function: {
     name: 'execute_command',
-    description: 'Run shell commands, scripts, or code. Use for testing, building, or running programs. Example: {"command": "npm test", "command_type": "bash"}',
+    description: 'Run shell commands, scripts, or code. SAFETY WARNING: Only use for commands that COMPLETE and EXIT (test scripts, build commands, short-running scripts). NEVER use for commands that run indefinitely (flask server, node app starting, python -m http.server, etc.). Always prefer short-running commands that exit. Example: {"command": "npm test", "command_type": "bash"}',
     parameters: {
       type: 'object',
       properties: {
         command: {
           type: 'string',
-          description: 'Shell command to execute (e.g., "ls -la", "python script.py")'
+          description: 'Shell command to execute. Only use commands that exit/stop automatically. Examples: "python my_script.py", "npm test", "ls -la". Avoid: long-running commands, "npm start" (starts servers), etc.'
         },
         command_type: {
           type: 'string',
@@ -189,7 +189,7 @@ export const SEARCH_FILES_SCHEMA: ToolSchema = {
         },
         directory: {
           type: 'string',
-          description: 'Directory to search in (default: current)',
+          description: 'Directory to search in. Use "." or "" for current directory, "src" for subdirectory. DO NOT include leading slash.',
           default: '.'
         },
         case_sensitive: {
@@ -253,7 +253,7 @@ export const LIST_FILES_SCHEMA: ToolSchema = {
       properties: {
         directory: {
           type: 'string',
-          description: 'Directory path to list (default: current directory)',
+          description: 'Directory path to list. Use "." or "" for current directory, "src" for subdirectory. DO NOT include leading slash.',
           default: '.'
         },
         pattern: {
