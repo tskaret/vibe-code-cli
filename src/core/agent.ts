@@ -31,6 +31,7 @@ export class Agent {
   private onApiUsage?: (usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) => void;
   private requestCount: number = 0;
   private currentAbortController: AbortController | null = null;
+  private isInterrupted: boolean = false;
 
   private constructor(
     model: string,
@@ -195,19 +196,25 @@ When asked about your identity, you should identify yourself as a coding assista
   }
 
   public interrupt(): void {
+    debugLog('Interrupting current request');
+    this.isInterrupted = true;
+    
     if (this.currentAbortController) {
-      debugLog('Interrupting current API request');
+      debugLog('Aborting current API request');
       this.currentAbortController.abort();
-      
-      // Add interruption message to conversation
-      this.messages.push({
-        role: 'system',
-        content: 'User has interrupted the request.'
-      });
     }
+    
+    // Add interruption message to conversation
+    this.messages.push({
+      role: 'system',
+      content: 'User has interrupted the request.'
+    });
   }
 
   async chat(userInput: string): Promise<void> {
+    // Reset interrupt flag at the start of a new chat
+    this.isInterrupted = false;
+    
     // Check API key on first message send
     if (!this.client) {
       debugLog('Initializing Groq client...');
@@ -239,6 +246,13 @@ When asked about your identity, you should identify yourself as a coding assista
 
     while (true) { // Outer loop for iteration reset
       while (iteration < maxIterations) {
+        // Check for interruption before each iteration
+        if (this.isInterrupted) {
+          debugLog('Chat loop interrupted by user');
+          this.currentAbortController = null;
+          return;
+        }
+        
         try {
           // Check client exists
           if (!this.client) {
@@ -327,6 +341,13 @@ When asked about your identity, you should identify yourself as a coding assista
 
             // Execute tool calls
             for (const toolCall of message.tool_calls) {
+              // Check for interruption before each tool execution
+              if (this.isInterrupted) {
+                debugLog('Tool execution interrupted by user');
+                this.currentAbortController = null;
+                return;
+              }
+              
               const result = await this.executeToolCall(toolCall);
 
               // Add tool result to conversation (including rejected ones)
@@ -377,6 +398,18 @@ When asked about your identity, you should identify yourself as a coding assista
 
         } catch (error) {
           this.currentAbortController = null; // Clear abort controller
+          
+          // Check if this is an abort error due to user interruption
+          if (error instanceof Error && (
+            error.message.includes('Request was aborted') ||
+            error.message.includes('The operation was aborted') ||
+            error.name === 'AbortError'
+          )) {
+            debugLog('API request aborted due to user interruption');
+            // Don't add error message if it's an interruption - the interrupt message was already added
+            return;
+          }
+          
           debugLog('Error occurred during API call:', error);
           debugLog('Error details:', {
             message: error instanceof Error ? error.message : String(error),
@@ -488,7 +521,25 @@ When asked about your identity, you should identify yourself as a coding assista
         let approvalResult: { approved: boolean; autoApproveSession?: boolean };
         
         if (this.onToolApproval) {
+          // Check for interruption before waiting for approval
+          if (this.isInterrupted) {
+            const result = { error: 'Tool execution interrupted by user', success: false, userRejected: true };
+            if (this.onToolEnd) {
+              this.onToolEnd(toolName, result);
+            }
+            return result;
+          }
+          
           approvalResult = await this.onToolApproval(toolName, toolArgs);
+          
+          // Check for interruption after approval process
+          if (this.isInterrupted) {
+            const result = { error: 'Tool execution interrupted by user', success: false, userRejected: true };
+            if (this.onToolEnd) {
+              this.onToolEnd(toolName, result);
+            }
+            return result;
+          }
         } else {
           // No approval callback available, reject by default
           approvalResult = { approved: false };
