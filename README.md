@@ -23,21 +23,22 @@
 
 <br>
 
-Coming soon: [Demo of Groq Code CLI]()
+<video src="https://github.com/user-attachments/assets/5902fd07-1882-4ee7-825b-50d627f8c96a" controls width="600"></video>
 > Demo of Groq Code CLI
 
 <br>
 
 # Overview
 
-Coding CLIs are everywhere. The Groq Code CLI is different. It is a blueprint, a building block, for developers looking to leverage, customize, and extend a CLI to be entirely their own. Leading open-source CLIs are all fantastic, inspiring for the open-source community, and hugely rich in features. However, that just it: they are *gigantic*. Local development with such a large and interwoven codebase is unfriendly and overwhelming. This is a project for those developers looking to dive in.
+Coding CLIs are everywhere. The Groq Code CLI is different. It is a blueprint, a building block, for developers looking to leverage, customize, and extend a CLI to be entirely their own. Leading open-source CLIs are all fantastic, inspiring for the open-source community, and hugely rich in features. However, that's just it: they are *gigantic*. Feature-rich: yes, but local development with such a large and interwoven codebase is unfriendly and overwhelming. This is a project for those developers looking to dive in.
 
-Groq Code CLI is your chance to make a CLI truly your own. Equipped with all of the features, tools, commands, and UI/UX that’s familiar to your current favorite CLI, we make it simple to add new features you’ve always wanted. By massively cutting down on bloat and code mass without compromising on quality, you can jump into modifying this CLI however you see fit. By leveraging models on Groq, you can iterate even faster (`/models` to see available models). Simply activate the CLI by typing `groq` in your terminal. Use Groq Code CLI in another codebase or even have it build and customize itself.
+Groq Code CLI is your chance to make a CLI truly your own. Equipped with all of the features, tools, commands, and UI/UX that’s familiar to your current favorite CLI, we make it simple to add new features you’ve always wanted. By massively cutting down on bloat and code mass without compromising on quality, you can jump into modifying this CLI however you see fit. By leveraging models on Groq, you can iterate even faster (`/models` to see available models). Simply activate the CLI by typing `groq` in your terminal. Use Groq Code CLI in any directory just like you would with any other coding CLI. Use it in this directory to have it build and customize itself!
 
-A few customization suggestions to get started:
+A few customization ideas to get started:
 - New slash commands (e.g. /mcp, /deadcode, /complexity, etc.)
 - Additional tools (e.g. web search, merge conflict resolver, knowledge graph builder, etc.)
 - Custom start-up ASCII art
+- Change the start-up command
 - Anything you can think of!
 
 
@@ -65,12 +66,13 @@ groq
 ### Command Line Options
 
 ```bash
-groq [prompt] [options]
+groq [options]
 
 Options:
   -t, --temperature <temp>      Temperature for generation (default: 1)
   -s, --system <message>        Custom system message
-  -h, --help                    Display help for command
+  -d, --debug                   Enable debug logging to debug-agent.log in current directory
+  -h, --help                    Display help
   -V, --version                 Display version number
 ```
 
