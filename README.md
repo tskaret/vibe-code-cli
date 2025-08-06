@@ -43,6 +43,7 @@ A few customization ideas to get started:
 
 ## Installation
 
+### For Development (Recommended)
 ```bash
 git clone https://github.com/build-with-groq/groq-code-cli.git
 cd groq-code-cli
@@ -54,6 +55,11 @@ npm link        # Enables the `groq` command in any directory
 ```bash
 # Run this in the background during development to automatically apply any changes to the source code
 npm run dev  
+```
+
+### To Try it Out
+```bash
+npx groq-code-cli@latest
 ```
 
 ## Usage
