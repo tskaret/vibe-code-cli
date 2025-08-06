@@ -5,26 +5,17 @@ import Chat from './components/core/Chat.js';
 
 interface AppProps {
   agent: Agent;
-  initialPrompt?: string;
 }
 
-export default function App({ agent, initialPrompt }: AppProps) {
+export default function App({ agent }: AppProps) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const initialize = async () => {
-      if (initialPrompt) {
-        await agent.chat(initialPrompt);
-      }
-      setIsReady(true);
-    };
-    
-    initialize();
-  }, [agent, initialPrompt]);
+    setIsReady(true);
+  }, []);
 
   return (
     <Box flexDirection="column" height="100%">
-
       {isReady ? (
         <Chat agent={agent} />
       ) : (

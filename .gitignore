@@ -1,5 +1,4 @@
 node_modules
 dist
-.groq/
 .env
 .DS_Store
