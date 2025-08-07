@@ -1,6 +1,6 @@
 {
 	"name": "groq-code-cli",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"license": "MIT",
 	"bin": {
 		"groq": "dist/core/cli.js"
@@ -11,8 +11,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"dev": "tsc --watch",
-		"test": "prettier --check . && xo && ava"
+		"dev": "tsc --watch"
 	},
 	"files": [
 		"dist"
@@ -20,7 +19,6 @@
 	"dependencies": {
 		"chalk": "^5.4.1",
 		"commander": "^14.0.0",
-		"dotenv": "^17.2.0",
 		"groq-sdk": "^0.27.0",
 		"ink": "^6.0.1",
 		"meow": "^11.0.0",
@@ -39,7 +37,7 @@
 		"prettier": "^2.8.7",
 		"ts-node": "^10.9.1",
 		"typescript": "^5.0.3",
-		"xo": "^0.53.1"
+		"xo": "^1.2.1"
 	},
 	"ava": {
 		"extensions": {

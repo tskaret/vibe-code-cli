@@ -48,7 +48,7 @@ async function startChat(
 program
   .name('groq')
   .description('Groq Code CLI')
-  .version('1.0.1')
+  .version('1.0.2')
   .option('-t, --temperature <temperature>', 'Temperature for generation', parseFloat, 1.0)
   .option('-s, --system <message>', 'Custom system message')
   .option('-d, --debug', 'Enable debug logging to debug-agent.log in current directory')
