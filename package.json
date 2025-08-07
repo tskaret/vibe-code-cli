@@ -1,6 +1,6 @@
 {
 	"name": "groq-code-cli",
-	"version": "0.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"bin": {
 		"groq": "dist/core/cli.js"
