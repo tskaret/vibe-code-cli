@@ -134,9 +134,10 @@ export default function MessageInput({
 
     // Regular character input
     if (input && !key.meta && !key.ctrl) {
-      const newValue = value.slice(0, cursorPosition) + input + value.slice(cursorPosition);
+      const processedInput = input.replace(/[\r\n]+/g, ' ');
+      const newValue = value.slice(0, cursorPosition) + processedInput + value.slice(cursorPosition);
       onChange(newValue);
-      setCursorPosition(prev => prev + input.length);
+      setCursorPosition(prev => prev + processedInput.length);
       setSelectedCommandIndex(0);
       setHistoryIndex(-1);
     }
