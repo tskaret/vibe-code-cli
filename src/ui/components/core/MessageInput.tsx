@@ -136,7 +136,7 @@ export default function MessageInput({
     if (input && !key.meta && !key.ctrl) {
       const newValue = value.slice(0, cursorPosition) + input + value.slice(cursorPosition);
       onChange(newValue);
-      setCursorPosition(prev => prev + 1);
+      setCursorPosition(prev => prev + input.length);
       setSelectedCommandIndex(0);
       setHistoryIndex(-1);
     }
