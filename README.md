@@ -57,7 +57,13 @@ npm link        # Enables the `groq` command in any directory
 npm run dev  
 ```
 
-### To Try it Out
+### Run Instantly
+```bash
+# Using npx, no installation required
+npx groq-code-cli@latest
+```
+
+### Install Globally
 ```bash
 npm install -g groq-code-cli@latest
 ```
