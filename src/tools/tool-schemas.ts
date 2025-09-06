@@ -1,5 +1,5 @@
 /**
- * Tool schemas for Groq function calling API.
+ * Tool schemas for local AI function calling.
  * These define the available tools that the LLM can call.
  */
 

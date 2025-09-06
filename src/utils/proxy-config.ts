@@ -11,7 +11,7 @@ const configManager = new ConfigManager();
  *
  * If `proxyOverride` is provided it is returned directly. Otherwise the function
  * returns the first non-empty value found in priority order:
- * GROQ_PROXY > HTTPS_PROXY/https_proxy > HTTP_PROXY/http_proxy > config file.
+ * VIBE_PROXY > HTTPS_PROXY/https_proxy > HTTP_PROXY/http_proxy > config file.
  * If none are set, returns undefined.
  *
  * @param proxyOverride - Optional explicit proxy URL that takes precedence over env vars and config.
@@ -23,14 +23,14 @@ function getProxyUrl(proxyOverride?: string): string | undefined {
   }
   
   // Check for proxy environment variables first (in order of priority)
-  // Check GROQ_PROXY first, then standard environment variables
-  const groqProxy = process.env.GROQ_PROXY;
+  // Check VIBE_PROXY first, then standard environment variables
+  const vibeProxy = process.env.VIBE_PROXY;
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
   
-  // Priority: GROQ_PROXY > HTTPS_PROXY > HTTP_PROXY > config file
-  if (groqProxy || httpsProxy || httpProxy) {
-    return groqProxy || httpsProxy || httpProxy;
+  // Priority: VIBE_PROXY > HTTPS_PROXY > HTTP_PROXY > config file
+  if (vibeProxy || httpsProxy || httpProxy) {
+    return vibeProxy || httpsProxy || httpProxy;
   }
   
   // If no environment variable, check config file

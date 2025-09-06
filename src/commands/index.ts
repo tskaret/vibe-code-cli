@@ -1,6 +1,6 @@
 import { CommandDefinition, CommandContext } from './base.js';
 import { helpCommand } from './definitions/help.js';
-import { loginCommand } from './definitions/login.js';
+// login command removed - Vibe uses local inference
 import { modelCommand } from './definitions/model.js';
 import { clearCommand } from './definitions/clear.js';
 import { initCommand } from './definitions/init.js';
@@ -9,7 +9,7 @@ import { statsCommand } from './definitions/stats.js';
 
 const availableCommands: CommandDefinition[] = [
   helpCommand,
-  loginCommand,
+  // loginCommand removed - Vibe uses local inference
   modelCommand,
   clearCommand,
   initCommand,

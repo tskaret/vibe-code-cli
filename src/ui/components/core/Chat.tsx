@@ -8,7 +8,7 @@ import MessageHistory from './MessageHistory.js';
 import MessageInput from './MessageInput.js';
 import TokenMetrics from '../display/TokenMetrics.js';
 import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
-import Login from '../input-overlays/Login.js';
+// Login import removed - Vibe uses local inference
 import ModelSelector from '../input-overlays/ModelSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
@@ -70,7 +70,6 @@ export default function Chat({ agent }: ChatProps) {
     respondToMaxIterations,
     respondToError,
     addMessage,
-    setApiKey,
     clearHistory,
     toggleAutoApprove,
     toggleReasoning,
@@ -80,7 +79,7 @@ export default function Chat({ agent }: ChatProps) {
   const { exit } = useApp();
   const [inputValue, setInputValue] = useState('');
   const [showInput, setShowInput] = useState(true);
-  const [showLogin, setShowLogin] = useState(false);
+  // showLogin state removed - Vibe uses local inference
   const [showModelSelector, setShowModelSelector] = useState(false);
 
   // Handle global keyboard shortcuts
@@ -122,8 +121,8 @@ export default function Chat({ agent }: ChatProps) {
 
   // Hide input when processing, waiting for approval, error retry, or showing login/model selector
   useEffect(() => {
-    setShowInput(!isProcessing && !pendingApproval && !pendingError && !showLogin && !showModelSelector);
-  }, [isProcessing, pendingApproval, pendingError, showLogin, showModelSelector]);
+    setShowInput(!isProcessing && !pendingApproval && !pendingError && !showModelSelector);
+  }, [isProcessing, pendingApproval, pendingError, showModelSelector]);
 
 
   const handleSendMessage = async (message: string) => {
@@ -138,7 +137,7 @@ export default function Chat({ agent }: ChatProps) {
             clearHistory();
             clearSessionStats();
           },
-          setShowLogin,
+          // setShowLogin removed
           setShowModelSelector,
           toggleReasoning,
           showReasoning,
@@ -164,23 +163,8 @@ export default function Chat({ agent }: ChatProps) {
     respondToError(false);
   };
 
-  const handleLogin = (apiKey: string) => {
-    setShowLogin(false);
-    // Save the API key persistently
-    agent.saveApiKey(apiKey);
-    addMessage({
-      role: 'system',
-      content: 'API key saved successfully. You can now start chatting with the assistant.',
-    });
-  };
+  // Login functionality removed - Vibe uses local inference
 
-  const handleLoginCancel = () => {
-    setShowLogin(false);
-    addMessage({
-      role: 'system',
-      content: 'Login canceled.',
-    });
-  };
 
   const handleModelSelect = (model: string) => {
     setShowModelSelector(false);
@@ -254,11 +238,6 @@ export default function Chat({ agent }: ChatProps) {
             error={pendingError.error}
             onRetry={handleErrorRetry}
             onCancel={handleErrorCancel}
-          />
-        ) : showLogin ? (
-          <Login
-            onSubmit={handleLogin}
-            onCancel={handleLoginCancel}
           />
         ) : showModelSelector ? (
           <ModelSelector

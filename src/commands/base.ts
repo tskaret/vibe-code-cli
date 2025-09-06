@@ -1,7 +1,7 @@
 export interface CommandContext {
   addMessage: (message: any) => void;
   clearHistory: () => void;
-  setShowLogin: (show: boolean) => void;
+  // setShowLogin removed - Vibe uses local inference
   setShowModelSelector?: (show: boolean) => void;
   toggleReasoning?: () => void;
   showReasoning?: boolean;

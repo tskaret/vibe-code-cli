@@ -3,12 +3,11 @@ import * as path from 'path';
 import * as os from 'os';
 
 interface Config {
-  groqApiKey?: string;
   defaultModel?: string;
-  groqProxy?: string;
+  vibeProxy?: string;
 }
 
-const CONFIG_DIR = '.groq'; // In home directory
+const CONFIG_DIR = '.vibe'; // In home directory
 const CONFIG_FILE = 'local-settings.json';
 
 export class ConfigManager {
@@ -52,37 +51,9 @@ export class ConfigManager {
     }
   }
 
-  public getApiKey(): string | null {
-    const config = this.readConfig();
-    return config.groqApiKey || null;
-  }
+  // API key methods removed - Vibe uses local inference
 
-  public setApiKey(apiKey: string): void {
-    try {
-      const config = this.readConfig();
-      config.groqApiKey = apiKey;
-      this.writeConfig(config);
-    } catch (error) {
-      throw new Error(`Failed to save API key: ${error}`);
-    }
-  }
 
-  public clearApiKey(): void {
-    try {
-      const config = this.readConfig();
-      delete config.groqApiKey;
-
-      if (Object.keys(config).length === 0) {
-        if (fs.existsSync(this.configPath)) {
-          fs.unlinkSync(this.configPath);
-        }
-      } else {
-        this.writeConfig(config);
-      }
-    } catch (error) {
-      console.warn('Failed to clear API key:', error);
-    }
-  }
 
   public getDefaultModel(): string | null {
     const config = this.readConfig();
@@ -101,7 +72,7 @@ export class ConfigManager {
 
   public getProxy(): string | null {
     const config = this.readConfig();
-    return config.groqProxy || null;
+    return config.vibeProxy || null;
   }
 
   public setProxy(proxy: string): void {
@@ -126,7 +97,7 @@ export class ConfigManager {
       }
       
       const config = this.readConfig();
-      config.groqProxy = trimmed;
+      config.vibeProxy = trimmed;
       this.writeConfig(config);
     } catch (error) {
       // Preserve original error via cause for better debugging
@@ -137,7 +108,7 @@ export class ConfigManager {
   public clearProxy(): void {
     try {
       const config = this.readConfig();
-      delete config.groqProxy;
+      delete config.vibeProxy;
 
       if (Object.keys(config).length === 0) {
         if (fs.existsSync(this.configPath)) {

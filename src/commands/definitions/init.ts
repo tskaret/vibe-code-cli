@@ -3,10 +3,10 @@ import { writeProjectContext } from '../../utils/context.js';
 
 export const initCommand: CommandDefinition = {
   command: 'init',
-  description: 'Generate project context files in .groq/',
+  description: 'Generate project context files in .vibe/',
   handler: ({ addMessage }: CommandContext) => {
     try {
-      const rootDir = process.env.GROQ_CONTEXT_DIR || process.cwd();
+      const rootDir = process.env.VIBE_CONTEXT_DIR || process.cwd();
       const { mdPath, jsonPath } = writeProjectContext(rootDir);
       addMessage({
         role: 'system',

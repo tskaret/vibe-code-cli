@@ -89,7 +89,7 @@ export function generateProjectContext(rootDir: string = process.cwd(), options:
 export function writeProjectContext(rootDir: string = process.cwd(), options: GenerateContextOptions = {}): { mdPath: string; jsonPath: string } {
   const { json, markdown } = generateProjectContext(rootDir, options);
 
-  const outputDir = path.join(rootDir, '.groq');
+  const outputDir = path.join(rootDir, '.vibe');
   fs.mkdirSync(outputDir, { recursive: true });
 
   const mdPath = path.join(outputDir, 'context.md');

@@ -18,7 +18,7 @@ interface Message {
 export class Agent {
   private pythonScriptPath: string;
   private messages: Message[] = [];
-  private apiKey: string | null = null;
+  // API key removed - Vibe uses local inference
   private model: string;
   private temperature: number;
   private sessionAutoApprove: boolean = false;
@@ -68,14 +68,14 @@ export class Agent {
 
     // Load project context if available
     try {
-      const explicitContextFile = process.env.GROQ_CONTEXT_FILE;
-      const baseDir = process.env.GROQ_CONTEXT_DIR || process.cwd();
-      const contextPath = explicitContextFile || path.join(baseDir, '.groq', 'context.md');
-      const contextLimit = parseInt(process.env.GROQ_CONTEXT_LIMIT || '20000', 10);
+      const explicitContextFile = process.env.VIBE_CONTEXT_FILE;
+      const baseDir = process.env.VIBE_CONTEXT_DIR || process.cwd();
+      const contextPath = explicitContextFile || path.join(baseDir, '.vibe', 'context.md');
+      const contextLimit = parseInt(process.env.VIBE_CONTEXT_LIMIT || '20000', 10);
       if (fs.existsSync(contextPath)) {
         const ctx = fs.readFileSync(contextPath, 'utf-8');
         const trimmed = ctx.length > contextLimit ? ctx.slice(0, contextLimit) + '\n... [truncated]' : ctx;
-        const contextSource = explicitContextFile ? contextPath : '.groq/context.md';
+        const contextSource = explicitContextFile ? contextPath : '.vibe/context.md';
         this.messages.push({
           role: 'system',
           content: `Project context loaded from ${contextSource}. Use this as high-level reference when reasoning about the repository.\n\n${trimmed}`
@@ -188,23 +188,9 @@ When asked about your identity, you should identify yourself as a coding assista
     this.onError = callbacks.onError;
   }
 
-  public setApiKey(apiKey: string): void {
-    debugLog('Setting API key in agent...');
-    debugLog('API key provided:', apiKey ? `${apiKey.substring(0, 8)}...` : 'empty');
-    this.apiKey = apiKey;
-    
-    debugLog('API key set for GPT-OSS requests');
-  }
+  // API key methods removed - Vibe uses local inference
 
-  public saveApiKey(apiKey: string): void {
-    this.configManager.setApiKey(apiKey);
-    this.setApiKey(apiKey);
-  }
 
-  public clearApiKey(): void {
-    this.configManager.clearApiKey();
-    this.apiKey = null;
-  }
 
   public clearHistory(): void {
     // Reset messages to only contain system messages
@@ -656,20 +642,4 @@ function debugLog(message: string, data?: any) {
   fs.appendFileSync(DEBUG_LOG_FILE, logEntry);
 }
 
-function generateCurlCommand(apiKey: string, requestBody: any, requestCount: number): string {
-  if (!debugEnabled) return '';
-  
-  const maskedApiKey = `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 8)}`;
-  
-  // Write request body to JSON file
-  const jsonFileName = `debug-request-${requestCount}.json`;
-  const jsonFilePath = path.join(process.cwd(), jsonFileName);
-  fs.writeFileSync(jsonFilePath, JSON.stringify(requestBody, null, 2));
-  
-  const curlCmd = `curl -X POST "https://api.together.xyz/v1/chat/completions" \\
-  -H "Authorization: Bearer ${maskedApiKey}" \\
-  -H "Content-Type: application/json" \\
-  -d @${jsonFileName}`;
-  
-  return curlCmd;
-}
+// generateCurlCommand removed - Vibe uses local inference

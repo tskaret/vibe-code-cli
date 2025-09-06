@@ -117,7 +117,7 @@ export default function PendingToolApproval({
           <Box>
             <Text color={selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? "black" : "red"}
                   backgroundColor={selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? "rgb(214, 114, 114)" : undefined}>
-              {selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? <Text bold>{">"}</Text> : "  "} No, tell Groq what to do differently (esc)
+              {selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? <Text bold>{">"}</Text> : "  "} No, tell Vibe what to do differently (esc)
             </Text>
           </Box>
         </Box>

@@ -21,7 +21,7 @@ export default function TokenMetrics({
   const [displayTime, setDisplayTime] = useState('0.0s');
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   
-  const loadingMessages = ['GroqThinking', 'GroqMaxxing', 'GroqCoding'];
+  const loadingMessages = ['Vibing', 'Processing', 'Coding'];
 
   // Update the display time every 100ms when active and not paused
   useEffect(() => {
