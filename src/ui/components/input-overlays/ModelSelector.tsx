@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { spawn } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 interface ModelInfo {
   name: string;
@@ -33,7 +34,8 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
   const loadModels = async () => {
     try {
       // Get the directory where this CLI is installed (not current working directory)
-      const cliDir = path.resolve(path.dirname(require.main?.filename || ''), '../..');
+      const currentFile = fileURLToPath(import.meta.url);
+      const cliDir = path.resolve(path.dirname(currentFile), '../../../..');
       const scriptPath = path.join(cliDir, 'list_models.py');
       const python = spawn('python3', [scriptPath]);
       

@@ -6,6 +6,7 @@ import { ConfigManager } from '../utils/local-settings.js';
 import { getProxyAgent, getProxyInfo } from '../utils/proxy-config.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 interface Message {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -48,7 +49,8 @@ export class Agent {
     this.configManager = new ConfigManager();
     this.proxyOverride = proxyOverride;
     // Get the directory where this CLI is installed (not current working directory)
-    const cliDir = path.resolve(path.dirname(require.main?.filename || ''), '../..');
+    const currentFile = fileURLToPath(import.meta.url);
+    const cliDir = path.resolve(path.dirname(currentFile), '../..');
     this.pythonScriptPath = path.join(cliDir, 'gpt_oss_inference.py');
     
     // Set debug mode
