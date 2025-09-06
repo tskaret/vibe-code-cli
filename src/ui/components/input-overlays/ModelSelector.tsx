@@ -32,7 +32,9 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
 
   const loadModels = async () => {
     try {
-      const scriptPath = path.join(process.cwd(), 'list_models.py');
+      // Get the directory where this CLI is installed (not current working directory)
+      const cliDir = path.resolve(path.dirname(require.main?.filename || ''), '../..');
+      const scriptPath = path.join(cliDir, 'list_models.py');
       const python = spawn('python3', [scriptPath]);
       
       let stdout = '';

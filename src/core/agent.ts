@@ -47,7 +47,9 @@ export class Agent {
     this.temperature = temperature;
     this.configManager = new ConfigManager();
     this.proxyOverride = proxyOverride;
-    this.pythonScriptPath = path.join(process.cwd(), 'gpt_oss_inference.py');
+    // Get the directory where this CLI is installed (not current working directory)
+    const cliDir = path.resolve(path.dirname(require.main?.filename || ''), '../..');
+    this.pythonScriptPath = path.join(cliDir, 'gpt_oss_inference.py');
     
     // Set debug mode
     debugEnabled = debug || false;
