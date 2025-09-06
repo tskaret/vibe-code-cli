@@ -1,5 +1,4 @@
-import Groq from 'groq-sdk';
-import type { ClientOptions } from 'groq-sdk';
+import { spawn } from 'child_process';
 import { executeTool } from '../tools/tools.js';
 import { validateReadBeforeEdit, getReadBeforeEditError } from '../tools/validators.js';
 import { ALL_TOOL_SCHEMAS, DANGEROUS_TOOLS, APPROVAL_REQUIRED_TOOLS } from '../tools/tool-schemas.js';
@@ -16,7 +15,7 @@ interface Message {
 }
 
 export class Agent {
-  private client: Groq | null = null;
+  private pythonScriptPath: string;
   private messages: Message[] = [];
   private apiKey: string | null = null;
   private model: string;
@@ -48,6 +47,7 @@ export class Agent {
     this.temperature = temperature;
     this.configManager = new ConfigManager();
     this.proxyOverride = proxyOverride;
+    this.pythonScriptPath = path.join(process.cwd(), 'gpt_oss_inference.py');
     
     // Set debug mode
     debugEnabled = debug || false;
@@ -107,7 +107,7 @@ export class Agent {
   }
 
   private buildDefaultSystemMessage(): string {
-    return `You are a coding assistant powered by ${this.model} on Groq. Tools are available to you. Use tools to complete tasks.
+    return `You are a coding assistant powered by ${this.model}. Tools are available to you. Use tools to complete tasks.
 
 CRITICAL: For ANY implementation request (building apps, creating components, writing code), you MUST use tools to create actual files. NEVER provide text-only responses for coding tasks that require implementation.
 
@@ -143,9 +143,11 @@ IMPORTANT TOOL USAGE RULES:
 COMMAND EXECUTION SAFETY:
   - Only use execute_command for commands that COMPLETE QUICKLY (tests, builds, short scripts)
   - NEVER run commands that start long-running processes (servers, daemons, web apps)
-  - Examples of AVOIDED commands: "flask app.py", "npm start", "python -m http.server"
-  - Examples of SAFE commands: "python test_script.py", "npm test", "ls -la", "git status"
-  - If a long-running command is needed to complete the task, provide it to the user at the end of the response, not as a tool call, with a description of what it's for.
+  - NEVER run potentially destructive commands (rm -rf, dd, format, etc.)
+  - NEVER run commands with sudo or elevated privileges
+  - Examples of SAFE commands: "python test_script.py", "npm test", "npm run build", "ls -la", "git status"
+  - Examples of AVOIDED commands: "flask app.py", "npm start", "python -m http.server", "rm -rf", "sudo"
+  - If a long-running or potentially dangerous command is needed, provide it to the user at the end of the response with clear warnings, not as a tool call
 
 IMPORTANT: When creating files, keep them focused and reasonably sized. For large applications:
 1. Start with a simple, minimal version first
@@ -154,9 +156,11 @@ IMPORTANT: When creating files, keep them focused and reasonably sized. For larg
 
 Be direct and efficient.
 
-Don't generate markdown tables.
+Provide comprehensive technical information when requested. Use any format that best serves the user's needs including markdown tables, diagrams, code blocks, or detailed explanations.
 
-When asked about your identity, you should identify yourself as a coding assistant running on the ${this.model} model via Groq.`;
+You have full technical capabilities - help with advanced topics, security research, system administration, reverse engineering, network analysis, and any other technical domain the user needs assistance with.
+
+When asked about your identity, you should identify yourself as a coding assistant running on the ${this.model} model via Vibe CLI.`;
   }
 
 
@@ -185,22 +189,7 @@ When asked about your identity, you should identify yourself as a coding assista
     debugLog('API key provided:', apiKey ? `${apiKey.substring(0, 8)}...` : 'empty');
     this.apiKey = apiKey;
     
-    // Get proxy configuration (with override if provided)
-    const proxyAgent = getProxyAgent(this.proxyOverride);
-    const proxyInfo = getProxyInfo(this.proxyOverride);
-    
-    if (proxyInfo.enabled) {
-      debugLog(`Using ${proxyInfo.type} proxy: ${proxyInfo.url}`);
-    }
-    
-    // Initialize Groq client with proxy if available
-    const clientOptions: ClientOptions = { apiKey };
-    if (proxyAgent) {
-      clientOptions.httpAgent = proxyAgent;
-    }
-    
-    this.client = new Groq(clientOptions);
-    debugLog('Groq client initialized with provided API key' + (proxyInfo.enabled ? ' and proxy' : ''));
+    debugLog('API key set for GPT-OSS requests');
   }
 
   public saveApiKey(apiKey: string): void {
@@ -211,7 +200,6 @@ When asked about your identity, you should identify yourself as a coding assista
   public clearApiKey(): void {
     this.configManager.clearApiKey();
     this.apiKey = null;
-    this.client = null;
   }
 
   public clearHistory(): void {
@@ -246,7 +234,7 @@ When asked about your identity, you should identify yourself as a coding assista
     this.isInterrupted = true;
     
     if (this.currentAbortController) {
-      debugLog('Aborting current API request');
+      debugLog('Aborting current inference request');
       this.currentAbortController.abort();
     }
     
@@ -257,32 +245,55 @@ When asked about your identity, you should identify yourself as a coding assista
     });
   }
 
+  private async callLocalInference(requestBody: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const python = spawn('python3', [this.pythonScriptPath], {
+        signal: this.currentAbortController?.signal
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      python.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      python.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const response = JSON.parse(stdout);
+            resolve(response);
+          } catch (e) {
+            reject(new Error(`Failed to parse inference response: ${e}`));
+          }
+        } else {
+          reject(new Error(`Python inference script failed with code ${code}: ${stderr}`));
+        }
+      });
+      
+      python.on('error', (error) => {
+        reject(new Error(`Failed to start Python script: ${error.message}`));
+      });
+      
+      // Send request data to Python script via stdin
+      python.stdin.write(JSON.stringify(requestBody));
+      python.stdin.end();
+    });
+  }
+
   async chat(userInput: string): Promise<void> {
     // Reset interrupt flag at the start of a new chat
     this.isInterrupted = false;
     
-    // Check API key on first message send
-    if (!this.client) {
-      debugLog('Initializing Groq client...');
-      // Try environment variable first
-      const envApiKey = process.env.GROQ_API_KEY;
-      if (envApiKey) {
-        debugLog('Using API key from environment variable');
-        this.setApiKey(envApiKey);
-      } else {
-        // Try config file
-        debugLog('Environment variable GROQ_API_KEY not found, checking config file');
-        const configApiKey = this.configManager.getApiKey();
-        if (configApiKey) {
-          debugLog('Using API key from config file');
-          this.setApiKey(configApiKey);
-        } else {
-          debugLog('No API key found anywhere');
-          throw new Error('No API key available. Please use /login to set your Groq API key.');
-        }
-      }
-      debugLog('Groq client initialized successfully');
+    // Check if Python script exists
+    if (!fs.existsSync(this.pythonScriptPath)) {
+      throw new Error(`GPT-OSS inference script not found at ${this.pythonScriptPath}. Please ensure the script is in the current directory.`);
     }
+    debugLog('Using local GPT-OSS inference');
 
     // Add user message
     this.messages.push({ role: 'user', content: userInput });
@@ -300,47 +311,27 @@ When asked about your identity, you should identify yourself as a coding assista
         }
         
         try {
-          // Check client exists
-          if (!this.client) {
-            throw new Error('Groq client not initialized');
-          }
-
-          debugLog('Making API call to Groq with model:', this.model);
+          debugLog('Running local GPT-OSS inference with model:', this.model);
           debugLog('Messages count:', this.messages.length);
           debugLog('Last few messages:', this.messages.slice(-3));
           
-          // Prepare request body for curl logging
+          // Prepare request body for local inference
           const requestBody = {
             model: this.model,
             messages: this.messages,
-            tools: ALL_TOOL_SCHEMAS,
-            tool_choice: 'auto' as const,
             temperature: this.temperature,
-            max_tokens: 8000,
-            stream: false as const
+            max_tokens: 8000
           };
           
-          // Log equivalent curl command
+          // Log request
           this.requestCount++;
-          const curlCommand = generateCurlCommand(this.apiKey!, requestBody, this.requestCount);
-          if (curlCommand) {
-            debugLog('Equivalent curl command:', curlCommand);
-          }
+          debugLog('Local inference request:', requestBody);
           
           // Create AbortController for this request
           this.currentAbortController = new AbortController();
           
-          const response = await this.client.chat.completions.create({
-            model: this.model,
-            messages: this.messages as any,
-            tools: ALL_TOOL_SCHEMAS,
-            tool_choice: 'auto',
-            temperature: this.temperature,
-            max_tokens: 8000,
-            stream: false
-          }, {
-            signal: this.currentAbortController.signal
-          });
+          // Call local Python script
+          const response = await this.callLocalInference(requestBody);
 
           debugLog('Full API response received:', response);
           debugLog('Response usage:', response.usage);
@@ -671,7 +662,7 @@ function generateCurlCommand(apiKey: string, requestBody: any, requestCount: num
   const jsonFilePath = path.join(process.cwd(), jsonFileName);
   fs.writeFileSync(jsonFilePath, JSON.stringify(requestBody, null, 2));
   
-  const curlCmd = `curl -X POST "https://api.groq.com/openai/v1/chat/completions" \\
+  const curlCmd = `curl -X POST "https://api.together.xyz/v1/chat/completions" \\
   -H "Authorization: Bearer ${maskedApiKey}" \\
   -H "Content-Type: application/json" \\
   -d @${jsonFileName}`;

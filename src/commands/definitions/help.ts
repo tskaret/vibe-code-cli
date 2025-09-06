@@ -24,7 +24,7 @@ Keyboard Shortcuts:
 - Shift+Tab - Toggle auto-approval for editing tools
 - Ctrl+C - Exit the application
 
-This is a highly customizable, lightweight, and open-source coding CLI powered by Groq. Ask for help with coding tasks, debugging issues, or explaining code.`
+Vibe is a highly customizable, lightweight, and open-source coding CLI powered by local AI inference. Ask for help with coding tasks, debugging issues, or explaining code.`
     });
   }
 };

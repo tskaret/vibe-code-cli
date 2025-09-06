@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { spawn } from 'child_process';
+import path from 'path';
+
+interface ModelInfo {
+  name: string;
+  size_b?: number;
+  vram_gb?: number;
+  color: 'green' | 'yellow' | 'red' | 'white';
+  available: boolean;
+}
 
 interface ModelSelectorProps {
   onSubmit: (model: string) => void;
@@ -7,25 +17,99 @@ interface ModelSelectorProps {
   currentModel?: string;
 }
 
-const AVAILABLE_MODELS = [
-  { id: 'moonshotai/kimi-k2-instruct-0905', name: 'Kimi K2 Instruct 09-05', description: 'Enhanced coding capabilities' },
-  { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: 'Fast, capable, and cheap model' },
-  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: 'Fastest and cheapest model' },
-  { id: 'qwen/qwen3-32b', name: 'Qwen 3 32B', description: '' },
-  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick', description: '' },
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', description: '' },
-
-];
-
 export default function ModelSelector({ onSubmit, onCancel, currentModel }: ModelSelectorProps) {
-  const [selectedIndex, setSelectedIndex] = useState(() => {
-    const currentIndex = AVAILABLE_MODELS.findIndex(model => model.id === currentModel);
-    return currentIndex >= 0 ? currentIndex : 0;
-  });
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [availableVram, setAvailableVram] = useState(0);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Load models on mount
+  useEffect(() => {
+    loadModels();
+  }, []);
+
+  const loadModels = async () => {
+    try {
+      const scriptPath = path.join(process.cwd(), 'list_models.py');
+      const python = spawn('python3', [scriptPath]);
+      
+      let stdout = '';
+      let stderr = '';
+      
+      python.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      python.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      python.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const result = JSON.parse(stdout);
+            setModels(result.models || []);
+            setAvailableVram(result.available_vram_gb || 0);
+            
+            // Set initial selection to current model if found
+            const currentIndex = result.models.findIndex((model: ModelInfo) => model.name === currentModel);
+            setSelectedIndex(currentIndex >= 0 ? currentIndex : 0);
+          } catch (e) {
+            setError(`Failed to parse model list: ${e}`);
+          }
+        } else {
+          setError(`Failed to load models: ${stderr}`);
+        }
+        setLoading(false);
+      });
+      
+      python.on('error', (error) => {
+        setError(`Failed to start model listing script: ${error.message}`);
+        setLoading(false);
+      });
+      
+    } catch (error) {
+      setError(`Error loading models: ${error}`);
+      setLoading(false);
+    }
+  };
+
+  const handleModelSelect = () => {
+    const selectedModel = models[selectedIndex];
+    if (!selectedModel) return;
+
+    // Check if model needs confirmation (yellow or red)
+    if (selectedModel.color === 'yellow' || selectedModel.color === 'red') {
+      setShowConfirmation(true);
+    } else {
+      onSubmit(selectedModel.name);
+    }
+  };
+
+  const handleConfirmation = (confirmed: boolean) => {
+    setShowConfirmation(false);
+    if (confirmed) {
+      onSubmit(models[selectedIndex].name);
+    }
+  };
 
   useInput((input, key) => {
+    if (showConfirmation) {
+      if (key.return || input === 'y' || input === 'Y') {
+        handleConfirmation(true);
+        return;
+      }
+      if (key.escape || input === 'n' || input === 'N') {
+        handleConfirmation(false);
+        return;
+      }
+      return;
+    }
+
     if (key.return) {
-      onSubmit(AVAILABLE_MODELS[selectedIndex].id);
+      handleModelSelect();
       return;
     }
 
@@ -40,7 +124,7 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
     }
 
     if (key.downArrow) {
-      setSelectedIndex(prev => Math.min(AVAILABLE_MODELS.length - 1, prev + 1));
+      setSelectedIndex(prev => Math.min(models.length - 1, prev + 1));
       return;
     }
 
@@ -50,45 +134,131 @@ export default function ModelSelector({ onSubmit, onCancel, currentModel }: Mode
     }
   });
 
+  // Show confirmation dialog
+  if (showConfirmation) {
+    const selectedModel = models[selectedIndex];
+    return (
+      <Box flexDirection="column">
+        <Box marginBottom={1}>
+          <Text color="yellow" bold>⚠️  Model Size Warning</Text>
+        </Box>
+        
+        <Box marginBottom={1}>
+          <Text>
+            Model: <Text bold color={selectedModel.color}>{selectedModel.name}</Text>
+          </Text>
+        </Box>
+        
+        <Box marginBottom={1}>
+          <Text>
+            Estimated VRAM required: <Text bold color={selectedModel.color}>
+              {selectedModel.vram_gb?.toFixed(1) || '?'} GB
+            </Text>
+          </Text>
+        </Box>
+        
+        <Box marginBottom={1}>
+          <Text>
+            Available VRAM: <Text bold>{availableVram.toFixed(1)} GB</Text>
+          </Text>
+        </Box>
+        
+        <Box marginBottom={1}>
+          <Text color={selectedModel.color}>
+            {selectedModel.color === 'yellow' 
+              ? '⚠️  This model may use swap memory (slower performance)'
+              : '❌ This model likely requires more VRAM than available'
+            }
+          </Text>
+        </Box>
+        
+        <Box>
+          <Text>
+            Continue anyway? <Text bold color="green">Y</Text>es / <Text bold color="red">N</Text>o
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box flexDirection="column">
+        <Box marginBottom={1}>
+          <Text color="cyan" bold>Loading Models...</Text>
+        </Box>
+        <Box>
+          <Text color="gray">Scanning HuggingFace models and checking VRAM requirements...</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Box flexDirection="column">
+        <Box marginBottom={1}>
+          <Text color="red" bold>Error Loading Models</Text>
+        </Box>
+        <Box marginBottom={1}>
+          <Text color="red">{error}</Text>
+        </Box>
+        <Box>
+          <Text color="gray">Press Esc to cancel</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Show model list
   return (
     <Box flexDirection="column">
       <Box marginBottom={1}>
-        <Text color="cyan" bold>Select Model</Text>
+        <Text color="cyan" bold>Select HuggingFace Model</Text>
+      </Box>
+      
+      <Box marginBottom={1}>
+        <Text color="gray">
+          Available VRAM: <Text bold>{availableVram.toFixed(1)} GB</Text>
+        </Text>
       </Box>
       
       <Box marginBottom={1}>
         <Text color="gray" dimColor>
-          Choose a model for your conversation. The chat will be cleared when you switch models.
-        </Text>
-      </Box>
-
-      <Box marginBottom={1}>
-        <Text color="gray" dimColor>
-          Visit <Text underline>https://groq.com/pricing</Text> for more information.
+          <Text color="green">●</Text> Fits in VRAM  <Text color="yellow">●</Text> May need swap  <Text color="red">●</Text> Too large
         </Text>
       </Box>
 
       <Box flexDirection="column" marginBottom={1}>
-        {AVAILABLE_MODELS.map((model, index) => (
-          <Box key={model.id} marginBottom={index === AVAILABLE_MODELS.length - 1 ? 0 : 1}>
+        {models.map((model, index) => (
+          <Box key={model.name} marginBottom={0}>
             <Text 
               color={index === selectedIndex ? 'black' : 'white'}
               backgroundColor={index === selectedIndex ? 'cyan' : undefined}
               bold={index === selectedIndex}
             >
-              {index === selectedIndex ? <Text bold>{">"}</Text> : "  "} {""}
-              {model.name}
-              {model.id === currentModel ? ' (current)' : ''}
+              {index === selectedIndex ? '>' : ' '} {' '}
+              <Text color={model.color}>●</Text> {model.name.split('/').pop()}
+              {model.name === currentModel ? ' (current)' : ''}
+              {model.vram_gb && ` (${model.vram_gb.toFixed(1)}GB)`}
             </Text>
-            {index === selectedIndex && (
-              <Box marginLeft={4} marginTop={0}>
+            {index === selectedIndex && model.size_b && (
+              <Box marginLeft={4}>
                 <Text color="gray" dimColor>
-                  {model.description}
+                  {model.size_b.toFixed(1)}B parameters • {model.available ? 'Available' : 'May require download'}
                 </Text>
               </Box>
             )}
           </Box>
         ))}
+      </Box>
+      
+      <Box>
+        <Text color="gray" dimColor>
+          Use ↑↓ to navigate, Enter to select, Esc to cancel
+        </Text>
       </Box>
     </Box>
   );

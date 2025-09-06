@@ -46,7 +46,7 @@ async function startChat(
  ░░░░░░   ░░░░░░   ░░░░░░░░  ░░░░░░   
 `));
     
-  let defaultModel = 'moonshotai/kimi-k2-instruct';
+  let defaultModel = 'OpenAI/gpt-oss-20B';
   
   // Validate proxy URL if provided
   if (proxy) {
@@ -72,8 +72,8 @@ async function startChat(
 }
 
 program
-  .name('groq')
-  .description('Groq Code CLI')
+  .name('vibe')
+  .description('Vibe Code CLI - Local AI-powered coding assistant')
   .version('1.0.2')
   .option('-t, --temperature <temperature>', 'Temperature for generation', parseFloat, 1.0)
   .option('-s, --system <message>', 'Custom system message')

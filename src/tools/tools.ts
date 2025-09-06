@@ -585,6 +585,52 @@ function isBinaryFile(filename: string): boolean {
 
 
 /**
+ * Assess command safety risk
+ */
+function assessCommandRisk(command: string): { risk: 'low' | 'medium' | 'high', reason?: string } {
+  const cmd = command.toLowerCase().trim();
+  
+  // High risk patterns
+  const highRiskPatterns = [
+    { pattern: /rm\s+.*-r/, reason: 'Recursive file deletion' },
+    { pattern: /sudo\s+/, reason: 'Elevated privileges' },
+    { pattern: /\|\s*bash/, reason: 'Piped shell execution' },
+    { pattern: /\|\s*sh/, reason: 'Piped shell execution' },
+    { pattern: />\s*\/dev\/sd[a-z]/, reason: 'Direct disk write' },
+    { pattern: /dd\s+/, reason: 'Direct disk operations' },
+    { pattern: /format\s+/, reason: 'Disk formatting' },
+    { pattern: /mkfs\./, reason: 'Filesystem creation' },
+    { pattern: /fdisk\s+/, reason: 'Disk partitioning' },
+    { pattern: /curl.*\|\s*(bash|sh)/, reason: 'Remote script execution' },
+    { pattern: /wget.*\|\s*(bash|sh)/, reason: 'Remote script execution' },
+  ];
+
+  // Medium risk patterns  
+  const mediumRiskPatterns = [
+    { pattern: /flask\s+run|flask.*app\.py/, reason: 'Long-running web server' },
+    { pattern: /npm\s+start/, reason: 'Long-running development server' },
+    { pattern: /python.*-m\s+http\.server/, reason: 'Long-running HTTP server' },
+    { pattern: /node.*server\.js/, reason: 'Long-running Node server' },
+    { pattern: /netcat|nc\s+.*-l/, reason: 'Network listener' },
+    { pattern: /python.*app\.py/, reason: 'Potential long-running application' },
+  ];
+
+  for (const { pattern, reason } of highRiskPatterns) {
+    if (pattern.test(cmd)) {
+      return { risk: 'high', reason };
+    }
+  }
+
+  for (const { pattern, reason } of mediumRiskPatterns) {
+    if (pattern.test(cmd)) {
+      return { risk: 'medium', reason };
+    }
+  }
+
+  return { risk: 'low' };
+}
+
+/**
  * Execute a shell command or run code
  */
 export async function executeCommand(command: string, commandType: string, workingDirectory?: string, timeout: number = 30000): Promise<ToolResult> {
@@ -592,6 +638,15 @@ export async function executeCommand(command: string, commandType: string, worki
     // Validate command type
     if (!['bash', 'python', 'setup', 'run'].includes(commandType)) {
       return createToolResponse(false, undefined, '', 'Error: Invalid command_type');
+    }
+
+    // Assess command safety
+    const { risk, reason } = assessCommandRisk(command);
+    if (risk === 'high') {
+      return createToolResponse(false, undefined, '', `Error: Command blocked for safety - ${reason}. Please run this command manually if needed.`);
+    }
+    if (risk === 'medium') {
+      return createToolResponse(false, undefined, '', `Error: Command blocked - ${reason}. Long-running processes should be started manually. The command was: ${command}`);
     }
 
     let originalCwd: string | undefined;
