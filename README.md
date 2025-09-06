@@ -41,13 +41,15 @@ Vibe Code CLI is a privacy-focused, local AI coding assistant that runs entirely
 ### **Minimum Requirements**
 - **RAM**: 8GB system memory
 - **Storage**: 10GB free disk space  
-- **CPU**: Modern multi-core processor (Intel i5/AMD Ryzen 5 or better)
+- **CPU**: Modern multi-core processor
 - **Python**: 3.8-3.12 (3.10+ recommended)
 - **Node.js**: 16+ (18+ recommended)
 - **Operating System**: 
   - Windows 10/11
   - macOS 10.15+ (Intel/Apple Silicon)
   - Linux (Ubuntu 20.04+, or equivalent)
+
+**Note**: Vibe may run on lower-specification hardware, but performance has not been tested on systems below these minimum requirements.
 
 ### **Recommended for Optimal Performance**
 - **RAM**: 16GB+ system memory
@@ -267,6 +269,16 @@ export HF_HUB_OFFLINE=false
 # Try smaller models first (1-3B parameters)
 # Close other applications
 # Use CPU inference: export CUDA_VISIBLE_DEVICES=""
+```
+
+**Problem: "Vibe CLI requires an interactive terminal (TTY)"**
+```bash
+# This happens when running through pipes, redirects, or some IDEs
+# Solutions:
+# 1. Run in proper terminal (not IDE console)
+# 2. Use terminal emulator: gnome-terminal -- vibe
+# 3. VS Code: Use integrated terminal (Ctrl+`)
+# 4. Check TTY: node -e "console.log('TTY:', process.stdin.isTTY)"
 ```
 
 ## Development

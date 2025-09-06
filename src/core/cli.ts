@@ -26,6 +26,14 @@ async function startChat(
   debug?: boolean,
   proxy?: string
 ): Promise<void> {
+  // Check if we're in a proper terminal environment
+  if (!process.stdin.isTTY) {
+    console.log(chalk.red('Error: Vibe CLI requires an interactive terminal (TTY).'));
+    console.log(chalk.yellow('Please run from a terminal that supports interactive input.'));
+    console.log(chalk.gray('This may happen when running through pipes, redirects, or some IDEs.'));
+    process.exit(1);
+  }
+
   console.log(chalk.hex('#FF4500')(`                             
   ██████    ██████   ██████   ██████
  ███░░███░░███░░░██ ███░░███ ███░░███ 
