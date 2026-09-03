@@ -23,7 +23,7 @@
 		"commander": "^14.0.0",
 		"https-proxy-agent": "^7.0.6",
 		"ink": "^6.0.1",
-		"meow": "^11.0.0",
+		"meow": "^14.1.0",
 		"react": "^19.1.0",
 		"socks-proxy-agent": "^8.0.5"
 	},
